@@ -29,7 +29,7 @@ miniterm --raw /dev/ttyAMA0 74880 - to see the os_printf() messages
 
 #define SSID "<ssid>"
 #define PASSPHRASE "<passprase>"
-#define HOSTNAME "timer"
+#define HOSTNAME "sntp-timer-relay"
 #define NTP0 "0.pool.ntp.org"
 #define NTP1 "1.pool.ntp.org"
 #define NTP2 "2.pool.ntp.org"
