@@ -29,6 +29,7 @@ miniterm --raw /dev/ttyAMA0 74880 - to see the os_printf() messages
 
 #define SSID "<ssid>"
 #define PASSPHRASE "<passprase>"
+#define HOSTNAME "timer"
 #define NTP0 "0.pool.ntp.org"
 #define NTP1 "1.pool.ntp.org"
 #define NTP2 "2.pool.ntp.org"
@@ -187,7 +188,7 @@ void ICACHE_FLASH_ATTR start_sntp(void *arg) {
 	os_timer_disarm(&sntp_on);
 	if (wifi_station_get_connect_status() == STATION_GOT_IP) {
 		os_printf("station got IP\n");
-		if (wifi_station_set_hostname("engine-room-fan"))
+		if (wifi_station_set_hostname(HOSTNAME))
 			os_printf("set hostname ok\n");
 		else os_printf("set hostname failed\n");
 
