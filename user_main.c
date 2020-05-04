@@ -226,7 +226,7 @@ void ICACHE_FLASH_ATTR start_sntp(void *arg) {
 		os_printf("sntp 1: %s\n", sntp_getservername(1));
 		os_printf("sntp 2: %s\n", sntp_getservername(2));
 
-		os_timer_arm(&relay_on, 5000, 0);
+		os_timer_arm(&relay_on, RELAY_TIME_ARM_INTERVAL, 0);
 	}
-	else os_timer_arm(&sntp_on, 3000, 0);
+	else os_timer_arm(&sntp_on, SNTP_TIME_ARM_INTERVAL, 0);
 }
