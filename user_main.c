@@ -167,7 +167,7 @@ void ICACHE_FLASH_ATTR turn_relay_on(void *arg) {
 		sntp_init();
 		return;
 	}
-	if (h >= 10 && h <= 16) {
+	if (h >= WORK_HOUR_START && h <= WORK_HOUR_END) {
 		os_timer_arm(&relay_off, RELAY_ON, 0);
 		os_printf("turning relay on...\n");
 		gpio_output_set(0, BIT0, BIT0, 0); //Set GPIO0 as low - level output.
