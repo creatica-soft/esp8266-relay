@@ -10,6 +10,4 @@ then turn it back off for another defined interval, and so on.
 
 Timer on/off parameters, work hours and a timezone may be set and periodically refreshed from an HTTP server using a single string in a text file (not html) with delimited values; for example, a single line in http://example.com/timer.txt
 
-<timer_on>:<timer_off>:<work_hour_start>:<work_hour_end>:<timezone>
-  
-
+timer_on_ms:timer_off_ms:work_hour_start:work_hour_end:timezone
