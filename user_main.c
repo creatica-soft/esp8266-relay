@@ -6,7 +6,7 @@ cp ESP8266_NONOS_SDK-2.2.1/examples/IoT_Demo/Makefile ESP8266_NONOS_SDK-2.2.1/ti
 cp -r ESP8266_NONOS_SDK-2.2.1/examples/IoT_Demo/include ESP8266_NONOS_SDK-2.2.1/timer/
 cp SP8266_NONOS_SDK-2.2.1/examples/IoT_Demo/user/Makefile ESP8266_NONOS_SDK-2.2.1/timer/user 
 Install esp-open-sdk first for crosscompiling!
-export PATH=/home/apoliakevitch/esp-open-sdk/xtensa-lx106-elf/bin:$PATH
+export PATH=~/esp-open-sdk/xtensa-lx106-elf/bin:$PATH
 Compile user1.bin for esp-01s with "make COMPILE=gcc BOOT=new APP=1 SPI_SPEED=40 SPI_MODE=0 SPI_SIZE_MAP=2"
 make clean
 Compile user2.bin for esp-01s with "make clean; make COMPILE=gcc BOOT=new APP=2 SPI_SPEED=40 SPI_MODE=0 SPI_SIZE_MAP=2"
