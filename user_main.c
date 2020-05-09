@@ -61,6 +61,7 @@ miniterm --raw /dev/ttyAMA0 74880
 //delimiter char between values in http:/example.com/timer.txt: 
 //relay_on_ms:relay_off_ms:work_hour_start:work_hour_end:tz
 #define VALUE_DELIMITER_CHAR ":"
+#define USE_STATIC_IP true
 #define STATIC_IP "192.168.1.33"
 #define NETMASK "255.255.255.0"
 #define GATEWAY_IP "192.168.1.1"
@@ -235,19 +236,21 @@ void ICACHE_FLASH_ATTR start_sntp(void *arg) {
 		if (wifi_station_set_hostname(HOSTNAME))
 			os_printf("set hostname %s ok\n", HOSTNAME);
 		else os_printf("set hostname %s HOSTNAME failed\n", HOSTNAME);
-
-		if (wifi_station_dhcpc_stop())
+		
+		if (USE_STATIC_IP) {
+		    if (wifi_station_dhcpc_stop())
 			os_printf("stop dhcp client ok\n");
-		else os_printf("stop dhcp client failed\n");
+		    else os_printf("stop dhcp client failed\n");
 
-		struct ip_info ip;
-		ipaddr_aton(STATIC_IP, &ip.ip);
-		ipaddr_aton(GATEWAY_IP, &ip.gw);
-		ipaddr_aton(NETMASK, &ip.netmask);
+		    struct ip_info ip;
+		    ipaddr_aton(STATIC_IP, &ip.ip);
+		    ipaddr_aton(GATEWAY_IP, &ip.gw);
+		    ipaddr_aton(NETMASK, &ip.netmask);
 
-		if (wifi_set_ip_info(STATION_IF, &ip))
+		    if (wifi_set_ip_info(STATION_IF, &ip))
 			os_printf("set static ip %s ok\n", ipaddr_ntoa(&ip.ip));
-		else os_printf("set static ip %s failed\n", ipaddr_ntoa(&ip.ip));
+		    else os_printf("set static ip %s failed\n", ipaddr_ntoa(&ip.ip));
+		}
 		
 		ip_addr_t *dns_ip = NULL;
 		dns_ip = (ip_addr_t *)os_zalloc(sizeof(ip_addr_t));
