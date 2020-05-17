@@ -2,12 +2,15 @@ esp8266-timer-relay is based on $2USD ESP-01s chip with relay from Aliexpress - 
 
 An example of programming esp8266 wifi chip using ESP8266 Non-OS SDK - simple sntp time-based relay.
 
-The module is configured to connect to a WiFi access point using defined static IP, configures DNS and SNTP time servers
-and set its time from one of SNTP servers.
+The module is configured to connect to a WiFi access point using dynamic or defined static IP, configures DNS and SNTP time servers
+and gets time from one of SNTP servers.
 
-It will then check if the current time is within the defined work hours and turn the relay on for the defined interval, 
-then turn it back off for another defined interval, and so on.
+It will then turn relay on and off based on the configured crontab lines: one line for turning relay on, another line - off.
 
-Timer on/off parameters, work hours and a timezone may be set and periodically refreshed from an HTTP server using a single string in a text file (not html) with delimited values; for example, a single line in http://example.com/timer.txt
+Timer parameters (crontab lines and a timezone) may be updated online from an HTTP server using a text file (not html); for example, a single line in http://example.com/timer.txt
 
-timer_on_ms:timer_off_ms:work_hour_start:work_hour_end:timezone
+5 * * * * *
+20 * * * * *
+12
+
+This will turn a relay on 5 seconds after each minute and turn it off 20 seconds after each minute. It will also change the timezone to UTC+12.
