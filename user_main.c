@@ -1,6 +1,8 @@
 /*
 Review and update defines
 
+wget https://github.com/espressif/ESP8266_NONOS_SDK/archive/v2.2.1.tar.gz
+tar -zxf ESP8266_NONOS_SDK-v2.2.1.tar.gz
 mkdir -p ESP8266_NONOS_SDK-2.2.1/timer/user
 cp user_main.c ESP8266_NONOS_SDK-2.2.1/timer/user
 cp ESP8266_NONOS_SDK-2.2.1/examples/IoT_Demo/Makefile ESP8266_NONOS_SDK-2.2.1/timer
