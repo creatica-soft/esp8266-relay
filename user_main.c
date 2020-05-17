@@ -69,26 +69,27 @@ miniterm --raw /dev/ttyAMA0 74880
 #define TIMER_ON_CRONLINE "5 * * * * *" //sec min hour day month day-of-week
 #define TIMER_OFF_CRONLINE "20 * * * * *" //sec min hour day month day-of-week
 //timezone from -11 to 13
-#define TIMEZONE 0
+#define RELAY_ARM_INTERVAL 1000 //period in ms to check if relay should be on or off
+				//set it based on relay schedule
+#define TIMEZONE 12
 
-/*WEB_SERVER_PATH file should have three lines:
+/*WEB_SERVER_PATH file should have four lines:
 CRONLINE_ON
 CRONLINE_OFF
+RELAY_ARM_INTERVAL
 TIMEZONE
 */
-#define WEB_SERVER_PATH "/timer-parameters.txt"
+#define WEB_SERVER_PATH "/engine-room-fan-parameters.txt"
 #define HTTP_METHOD "GET"
 #define HTTP_VERSION "HTTP/1.1"
 #define USER_AGENT "esp8266"
 
 //Station static IP config
-#define USE_STATIC_IP false
-#define STATIC_IP "192.168.1.10"
+#define USE_STATIC_IP true
+#define STATIC_IP "192.168.1.33"
 #define NETMASK "255.255.255.0"
 #define GATEWAY_IP "192.168.1.1"
 
-#define RELAY_TIME_ARM_INTERVAL 1000 //period in ms to check if relay should be on or off
-									  //set it based on relay schedule
 #define ESP_CONFIG_ARM_INTERVAL 5000 //in ms
 #define USER1_BIN_ADDRESS 0x01000 //SPI flash start address of user1.bin
 
@@ -96,6 +97,7 @@ uint32 priv_param_start_sec;
 os_timer_t relay;
 os_timer_t esp_config;
 os_timer_t http_update;
+int relay_arm_interval = RELAY_ARM_INTERVAL;
 int tz = TIMEZONE;
 uint8 secondsOn[60], minutesOn[60], hoursOn[24], daysOn[31], monthsOn[12], dweekOn[7];
 uint8 secondsOff[60], minutesOff[60], hoursOff[24], daysOff[31], monthsOff[12], dweekOff[7];
@@ -276,7 +278,9 @@ void ICACHE_FLASH_ATTR esp_config_cb(void *arg) {
 		os_printf("sntp 1: %s\n", sntp_getservername(1));
 		os_printf("sntp 2: %s\n", sntp_getservername(2));
 
-		parse_body(TIMER_ON_CRONLINE "\n" TIMER_OFF_CRONLINE "\n");
+		char par[os_strlen(TIMER_ON_CRONLINE) + os_strlen(TIMER_OFF_CRONLINE) + 15];
+		os_sprintf(par, "%s\n%s\n%u\n%d\n", TIMER_ON_CRONLINE, TIMER_OFF_CRONLINE, RELAY_ARM_INTERVAL, TIMEZONE);
+		parse_body(par);
 
 		if (HTTP_UPDATE) {
 			http_update_cb(NULL);
@@ -284,7 +288,7 @@ void ICACHE_FLASH_ATTR esp_config_cb(void *arg) {
 			os_printf("set timer parameters update over http interval to %ums\n", HTTP_UPDATE_INTERVAL);
 		}
 		else {
-			os_timer_arm(&relay, RELAY_TIME_ARM_INTERVAL, 0);
+			os_timer_arm(&relay, relay_arm_interval, 0);
 		}
 /*		if (HTTP_FW_UPDATE) {
 			http_fw_update_cb(NULL);
@@ -456,7 +460,7 @@ void ICACHE_FLASH_ATTR relay_cb(void *arg) {
 		os_printf("unable to get time from sntp server\n"); 
 		//sntp_init();
 	}
-	os_timer_arm(&relay, RELAY_TIME_ARM_INTERVAL, 0);
+	os_timer_arm(&relay, relay_arm_interval, 0);
 }
 void ICACHE_FLASH_ATTR http_update_cb(void * arg) {
 	struct espconn * con = (struct espconn *)os_zalloc(sizeof(struct espconn));
@@ -564,6 +568,7 @@ void ICACHE_FLASH_ATTR sent_cb(void * args) {
 uint8 ICACHE_FLASH_ATTR parse_body(char * body) {
 	char * cronlineOn = NULL;
 	char * cronlineOff = NULL;
+	char * relay_arm_interval_char = NULL;
 	char * timezone = NULL;
 	uint8 e;
 	os_memset(secondsOn, 0, 60);
@@ -584,8 +589,17 @@ uint8 ICACHE_FLASH_ATTR parse_body(char * body) {
 	cronlineOff = strtok(NULL, "\r\n");
 	if (!cronlineOff) return 2;
 //	os_printf("cronlineOff %s\n", cronlineOff);
+	relay_arm_interval_char = strtok(NULL, "\r\n");
+	if (!relay_arm_interval_char) return 3;
+//	os_printf("relay_arm_interval_char %s\n", relay_arm_interval_char);
+	if (isdigit(relay_arm_interval_char[0])) 
+		relay_arm_interval = atoi(relay_arm_interval_char);
+	else return 4;
 	timezone = strtok(NULL, "\r\n");
-	if (timezone) tz = atoi(timezone);
+	if (!timezone) return 5;
+//	os_printf("timezone %s\n", timezone);
+	tz = atoi(timezone);
+
 	e = cron_parser(cronlineOn, true);
 	if (e != 0) os_printf("cron_parser(cronlineOn) error %u\n", e);
 	e = cron_parser(cronlineOff, false);
@@ -626,7 +640,7 @@ void ICACHE_FLASH_ATTR receive_cb(void * args, char * buf, unsigned short len) {
 			os_printf("sntp set timezone %d ok\n", tz);
 		else os_printf("sntp set timezone %d failed\n", tz);
 	}
-	os_timer_arm(&relay, RELAY_TIME_ARM_INTERVAL, 0);
+	os_timer_arm(&relay, relay_arm_interval, 0);
 }
 void ICACHE_FLASH_ATTR web_server_found(const char * name, ip_addr_t * ip, void * args) {
 	if (ip) {
