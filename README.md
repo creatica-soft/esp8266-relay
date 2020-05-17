@@ -10,7 +10,9 @@ It will then turn relay on and off based on the configured crontab lines: one li
 Timer parameters (crontab lines and a timezone) may be updated online from an HTTP server using a text file (not html); for example, a single line in http://example.com/timer.txt
 
 5 * * * * *
+
 20 * * * * *
+
 12
 
 This will turn a relay on 5 seconds after each minute and turn it off 20 seconds after each minute. It will also change the timezone to UTC+12.
