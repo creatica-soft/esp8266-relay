@@ -7,7 +7,7 @@ and gets time from one of SNTP servers.
 
 It will then turn relay on and off based on the configured crontab lines: one line for turning relay on, another line - off.
 
-Timer parameters (crontab lines and a timezone) may be updated online from an HTTP server using a text file (not html); for example, a single line in http://example.com/timer.txt
+Timer parameters (crontab lines and a timezone) may be updated online from an HTTP server using a text file (not html); for example, http://example.com/timer-parameters.txt with 3 lines:
 
 5 * * * * *
 
@@ -15,4 +15,4 @@ Timer parameters (crontab lines and a timezone) may be updated online from an HT
 
 12
 
-This will turn a relay on 5 seconds after each minute and turn it off 20 seconds after each minute. It will also change the timezone to UTC+12.
+The above lines will turn a relay on 5 seconds after each minute and turn it back off 20 seconds after each minute. It will also change the timezone to UTC+12.
