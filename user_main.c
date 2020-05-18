@@ -49,6 +49,7 @@ miniterm --raw /dev/ttyAMA0 74880
 
 #define SSID "ssid"
 #define PASSPHRASE "password"
+#define WIFI_POWER 10 // in 0.25dBm units from 0 to 82
 #define SSID_CHANNEL 1 //optional channel for AP scan
 #define MIN_SCANTIME 1000 //wifi min scan time in ms
 #define MAX_SCANTIME 5000 //wifi max scan time in ms
@@ -135,7 +136,7 @@ void ICACHE_FLASH_ATTR user_rf_pre_init(void) {
 	Byte 35 - target_power_qdb_0 - in esp_init_data_default.bin
 	In _v08.bin it is set to 74 (18dBm or 63mW)
 	*/
-	system_phy_set_max_tpw(37);
+	system_phy_set_max_tpw(WIFI_POWER);
 	/*
 	Alternatively power can be adjusted in VDD33 units (1/1024 V)
 	in the range 1900 - 3300
