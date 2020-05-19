@@ -49,6 +49,7 @@ miniterm --raw /dev/ttyAMA0 74880
 
 #define SSID "ssid"
 #define PASSPHRASE "password"
+//iw wlan0 station dump to check the signal >= -50dBm is good
 #define WIFI_POWER 10 // in 0.25dBm units from 0 to 82
 #define SSID_CHANNEL 1 //optional channel for AP scan
 #define MIN_SCANTIME 1000 //wifi min scan time in ms
