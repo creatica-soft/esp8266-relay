@@ -585,6 +585,11 @@ void ICACHE_FLASH_ATTR disconnect_cb(void * args) {
 	struct espconn *con = (struct espconn *)args;
 	if (con) {
 		os_printf("disconnecting from %d.%d.%d.%d\n", con->proto.tcp->remote_ip[0], con->proto.tcp->remote_ip[1], con->proto.tcp->remote_ip[2], con->proto.tcp->remote_ip[3]);
+		espconn_delete(con);
+		if (con->proto.tcp != NULL) {
+			os_free(con->proto.tcp);
+		}
+		os_free(con);
 	}
 }
 void ICACHE_FLASH_ATTR sent_cb(void * args) {
