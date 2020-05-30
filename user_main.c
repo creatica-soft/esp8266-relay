@@ -1,13 +1,14 @@
 /*
 Review and update defines
 
-wget https://github.com/espressif/ESP8266_NONOS_SDK/archive/v2.2.1.tar.gz
-tar -zxf ESP8266_NONOS_SDK-v2.2.1.tar.gz
-mkdir -p ESP8266_NONOS_SDK-2.2.1/timer/user
-cp user_main.c ESP8266_NONOS_SDK-2.2.1/timer/user
-cp ESP8266_NONOS_SDK-2.2.1/examples/IoT_Demo/Makefile ESP8266_NONOS_SDK-2.2.1/timer
-cp -r ESP8266_NONOS_SDK-2.2.1/examples/IoT_Demo/include ESP8266_NONOS_SDK-2.2.1/timer/
-cp SP8266_NONOS_SDK-2.2.1/examples/IoT_Demo/user/Makefile ESP8266_NONOS_SDK-2.2.1/timer/user 
+wget https://github.com/espressif/ESP8266_NONOS_SDK/archive/v3.0.3.tar.gz
+tar -zxf ESP8266_NONOS_SDK-v3.0.3.tar.gz
+mkdir -p ESP8266_NONOS_SDK-3.0.3/timer/user
+cp user_main.c ESP8266_NONOS_SDK-3.0.3/timer/user
+cp ESP8266_NONOS_SDK-3.0.3/examples/IoT_Demo/Makefile ESP8266_NONOS_SDK-3.0.3/timer
+Comment out "driver" lines in Makefile above
+cp -r ESP8266_NONOS_SDK-3.0.3/examples/IoT_Demo/include ESP8266_NONOS_SDK-3.0.3/timer/
+cp SP8266_NONOS_SDK-3.0.3/examples/IoT_Demo/user/Makefile ESP8266_NONOS_SDK-3.0.3/timer/user 
 
 Install esp-open-sdk first for crosscompiling!
 
@@ -17,25 +18,33 @@ Compile user1.bin for esp-01s with "make COMPILE=gcc BOOT=new APP=1 SPI_SPEED=40
 Compile user2.bin for esp-01s with "make clean; make COMPILE=gcc BOOT=new APP=2 SPI_SPEED=40 SPI_MODE=0 SPI_SIZE_MAP=2"
 
 Install esptool from https://github.com/espressif/esptool
+
 Power off, ground GPIO0 before flashing, power on
 
 Power cycle after each flash!
 
 Flash boot.bin first:
-./esptool.py -p /dev/ttyAMA0 -b 115200 write_flash 0x00000 esp-01s/boot.bin
+./esptool.py -p /dev/ttyAMA0 -b 115200 write_flash 0x00000 ../ESP8266_NONOS_SDK-3.0.3/bin/boot_v1.7.bin
 Flash user1.bin:
-./esptool.py -p /dev/ttyAMA0 -b 115200 write_flash 0x01000 ../ESP8266_NONOS_SDK-2.2.1/bin/upgrade/user1.1024.new.2.bin
+./esptool.py -p /dev/ttyAMA0 -b 115200 write_flash 0x01000 ../ESP8266_NONOS_SDK-3.0.3/bin/upgrade/user1.1024.new.2.bin
 Flash redundant image user2.bin:
-./esptool.py -p /dev/ttyAMA0 -b 115200 write_flash 0x81000 ../ESP8266_NONOS_SDK-2.2.1/bin/upgrade/user2.1024.new.2.bin
+./esptool.py -p /dev/ttyAMA0 -b 115200 write_flash 0x81000 ../ESP8266_NONOS_SDK-3.0.3/bin/upgrade/user2.1024.new.2.bin
 Flash blank.bin and esp_init_data_default.bin:
-./esptool.py -p /dev/ttyAMA0 -b 115200 write_flash 0xfb000 esp-01s/blank.bin
-./esptool.py -p /dev/ttyAMA0 -b 115200 write_flash 0xfc000 esp-01s/esp_init_data_default_v08.bin
-./esptool.py -p /dev/ttyAMA0 -b 115200 write_flash 0xfe000 esp-01s/blank.bin
+./esptool.py -p /dev/ttyAMA0 -b 115200 write_flash 0xfb000 ../ESP8266_NONOS_SDK-3.0.3/bin/blank.bin
+./esptool.py -p /dev/ttyAMA0 -b 115200 write_flash 0xfc000 ../ESP8266_NONOS_SDK-3.0.3/bin/esp_init_data_default_v08.bin
+./esptool.py -p /dev/ttyAMA0 -b 115200 write_flash 0xfe000 ../ESP8266_NONOS_SDK-3.0.3/bin/blank.bin
 
 Power off, unground GPIO0 for normal operation, power on
 
 Run terminal emulator to see the os_printf() messages:
 miniterm --raw /dev/ttyAMA0 74880
+
+2nd boot version : 1.5
+SPI Speed      : 40MHz
+SPI Mode       : QIO
+SPI Flash Size & Map: 8Mbit(512KB+512KB)
+jump to run user1 @ 1000
+
 */
 #include "ets_sys.h"
 #include "sntp.h"
@@ -49,31 +58,31 @@ miniterm --raw /dev/ttyAMA0 74880
 
 #define SSID "ssid"
 #define PASSPHRASE "password"
-//iw wlan0 station dump to check the signal >= -50dBm is good
+//iw wlan0 station dump to check the signal >= -50dBm is good 
 #define WIFI_POWER 10 // in 0.25dBm units from 0 to 82
 #define SSID_CHANNEL 1 //optional channel for AP scan
 #define MIN_SCANTIME 1000 //wifi min scan time in ms
 #define MAX_SCANTIME 5000 //wifi max scan time in ms
-#define HOSTNAME "hostname"
+#define HOSTNAME "relay"
 #define NTP0 "0.pool.ntp.org"
 #define NTP1 "1.pool.ntp.org"
 #define NTP2 "2.pool.ntp.org"
 #define DNS "192.168.1.1"
 
 //update timer parameters from http://WEB_SERVER:WEB_SERVER_PORT/WEB_SERVER_PATH
-#define HTTP_UPDATE true
+#define HTTP_UPDATE false
 
 //check for new timer parameters every ms
-#define HTTP_UPDATE_INTERVAL 3600000 
+#define HTTP_UPDATE_INTERVAL 300000 
 #define WEB_SERVER "example.com"
 #define WEB_SERVER_PORT "80"
 
-#define TIMER_ON_CRONLINE "5 * * * * *" //sec min hour day month day-of-week
-#define TIMER_OFF_CRONLINE "20 * * * * *" //sec min hour day month day-of-week
+#define TIMER_ON_CRONLINE "0-4,20-24,40-44 * * * * *" //sec min hour day month day-of-week
+#define TIMER_OFF_CRONLINE "10-14,30-24,50-54 * * * * *" //sec min hour day month day-of-week
 //timezone from -11 to 13
-#define RELAY_ARM_INTERVAL 1000 //period in ms to check if relay should be on or off
-				//set it based on relay schedule
-#define TIMEZONE 12
+#define RELAY_ARM_INTERVAL 5000 //period in ms to check if relay should be on or off
+								//set it based on relay schedule
+#define TIMEZONE 0
 
 /*WEB_SERVER_PATH file should have four lines:
 CRONLINE_ON
@@ -81,21 +90,73 @@ CRONLINE_OFF
 RELAY_ARM_INTERVAL
 TIMEZONE
 */
-#define WEB_SERVER_PATH "/engine-room-fan-parameters.txt"
+#define WEB_SERVER_PATH "/relay-timer-parameters.txt"
 #define HTTP_METHOD "GET"
 #define HTTP_VERSION "HTTP/1.1"
 #define USER_AGENT "esp8266"
 
 //Station static IP config
-#define USE_STATIC_IP true
-#define STATIC_IP "192.168.1.33"
+#define USE_STATIC_IP false
+#define STATIC_IP "192.168.1.100"
 #define NETMASK "255.255.255.0"
 #define GATEWAY_IP "192.168.1.1"
 
 #define ESP_CONFIG_ARM_INTERVAL 5000 //in ms
 #define USER1_BIN_ADDRESS 0x01000 //SPI flash start address of user1.bin
 
+#if ((SPI_FLASH_SIZE_MAP == 0) || (SPI_FLASH_SIZE_MAP == 1))
+#error "The flash map is not supported"
+#elif (SPI_FLASH_SIZE_MAP == 2)
+#define SYSTEM_PARTITION_OTA_SIZE							0x6A000
+#define SYSTEM_PARTITION_OTA_2_ADDR							0x81000
+#define SYSTEM_PARTITION_RF_CAL_ADDR						0xfb000
+#define SYSTEM_PARTITION_PHY_DATA_ADDR						0xfc000
+#define SYSTEM_PARTITION_SYSTEM_PARAMETER_ADDR				0xfd000
+#define SYSTEM_PARTITION_CUSTOMER_PRIV_PARAM_ADDR           0x7c000
+#elif (SPI_FLASH_SIZE_MAP == 3)
+#define SYSTEM_PARTITION_OTA_SIZE							0x6A000
+#define SYSTEM_PARTITION_OTA_2_ADDR							0x81000
+#define SYSTEM_PARTITION_RF_CAL_ADDR						0x1fb000
+#define SYSTEM_PARTITION_PHY_DATA_ADDR						0x1fc000
+#define SYSTEM_PARTITION_SYSTEM_PARAMETER_ADDR				0x1fd000
+#define SYSTEM_PARTITION_CUSTOMER_PRIV_PARAM_ADDR           0x7c000
+#elif (SPI_FLASH_SIZE_MAP == 4)
+#define SYSTEM_PARTITION_OTA_SIZE							0x6A000
+#define SYSTEM_PARTITION_OTA_2_ADDR							0x81000
+#define SYSTEM_PARTITION_RF_CAL_ADDR						0x3fb000
+#define SYSTEM_PARTITION_PHY_DATA_ADDR						0x3fc000
+#define SYSTEM_PARTITION_SYSTEM_PARAMETER_ADDR				0x3fd000
+#define SYSTEM_PARTITION_CUSTOMER_PRIV_PARAM_ADDR           0x7c000
+#elif (SPI_FLASH_SIZE_MAP == 5)
+#define SYSTEM_PARTITION_OTA_SIZE							0x6A000
+#define SYSTEM_PARTITION_OTA_2_ADDR							0x101000
+#define SYSTEM_PARTITION_RF_CAL_ADDR						0x1fb000
+#define SYSTEM_PARTITION_PHY_DATA_ADDR						0x1fc000
+#define SYSTEM_PARTITION_SYSTEM_PARAMETER_ADDR				0x1fd000
+#define SYSTEM_PARTITION_CUSTOMER_PRIV_PARAM_ADDR           0xfc000
+#elif (SPI_FLASH_SIZE_MAP == 6)
+#define SYSTEM_PARTITION_OTA_SIZE							0x6A000
+#define SYSTEM_PARTITION_OTA_2_ADDR							0x101000
+#define SYSTEM_PARTITION_RF_CAL_ADDR						0x3fb000
+#define SYSTEM_PARTITION_PHY_DATA_ADDR						0x3fc000
+#define SYSTEM_PARTITION_SYSTEM_PARAMETER_ADDR				0x3fd000
+#define SYSTEM_PARTITION_CUSTOMER_PRIV_PARAM_ADDR           0xfc000
+#else
+#error "The flash map is not supported"
+#endif
+
+#define SYSTEM_PARTITION_CUSTOMER_PRIV_PARAM                SYSTEM_PARTITION_CUSTOMER_BEGIN
+
 uint32 priv_param_start_sec;
+static const partition_item_t at_partition_table[] = {
+	{ SYSTEM_PARTITION_BOOTLOADER, 						0x0, 												0x1000},
+	{ SYSTEM_PARTITION_OTA_1,   						0x1000, 											SYSTEM_PARTITION_OTA_SIZE},
+	{ SYSTEM_PARTITION_OTA_2,   						SYSTEM_PARTITION_OTA_2_ADDR, 						SYSTEM_PARTITION_OTA_SIZE},
+	{ SYSTEM_PARTITION_RF_CAL,  						SYSTEM_PARTITION_RF_CAL_ADDR, 						0x1000},
+	{ SYSTEM_PARTITION_PHY_DATA, 						SYSTEM_PARTITION_PHY_DATA_ADDR, 					0x1000},
+	{ SYSTEM_PARTITION_SYSTEM_PARAMETER, 				SYSTEM_PARTITION_SYSTEM_PARAMETER_ADDR, 			0x3000},
+	{ SYSTEM_PARTITION_CUSTOMER_PRIV_PARAM,             SYSTEM_PARTITION_CUSTOMER_PRIV_PARAM_ADDR,          0x1000},
+};
 os_timer_t relay;
 os_timer_t esp_config;
 os_timer_t http_update;
@@ -194,6 +255,12 @@ uint32 ICACHE_FLASH_ATTR user_rf_cal_sector_set(void) {
 	}
 	return rf_cal_sec;
 }
+void ICACHE_FLASH_ATTR user_pre_init(void) {
+	if (!system_partition_table_regist(at_partition_table, sizeof(at_partition_table) / sizeof(at_partition_table[0]), SPI_FLASH_SIZE_MAP)) {
+		os_printf("system_partition_table_regist failed\n");
+		while (1);
+	}
+}
 
 void ICACHE_FLASH_ATTR user_init(void) {
 	if (system_get_boot_mode() != 0) set_enhanced_boot_mode();
@@ -284,14 +351,8 @@ void ICACHE_FLASH_ATTR esp_config_cb(void *arg) {
 		os_sprintf(par, "%s\n%s\n%u\n%d\n", TIMER_ON_CRONLINE, TIMER_OFF_CRONLINE, RELAY_ARM_INTERVAL, TIMEZONE);
 		parse_body(par);
 
-		if (HTTP_UPDATE) {
-			http_update_cb(NULL);
-			os_timer_arm(&http_update, HTTP_UPDATE_INTERVAL, 0);
-			os_printf("set timer parameters update over http interval to %ums\n", HTTP_UPDATE_INTERVAL);
-		}
-		else {
-			os_timer_arm(&relay, relay_arm_interval, 0);
-		}
+		if (HTTP_UPDATE) http_update_cb(NULL);
+		else os_timer_arm(&relay, relay_arm_interval, 0);
 /*		if (HTTP_FW_UPDATE) {
 			http_fw_update_cb(NULL);
 			os_timer_arm(&http_fw_update, HTTP_FW_UPDATE_INTERVAL, 0);
@@ -465,6 +526,9 @@ void ICACHE_FLASH_ATTR relay_cb(void *arg) {
 	os_timer_arm(&relay, relay_arm_interval, 0);
 }
 void ICACHE_FLASH_ATTR http_update_cb(void * arg) {
+	os_timer_disarm(&http_update);
+	os_timer_arm(&http_update, HTTP_UPDATE_INTERVAL, 0);
+	os_printf("set timer parameters update over http interval to %ums\n", HTTP_UPDATE_INTERVAL);
 	struct espconn * con = (struct espconn *)os_zalloc(sizeof(struct espconn));
 	con->type = ESPCONN_TCP;
 	con->state = ESPCONN_NONE;
@@ -523,16 +587,20 @@ void ICACHE_FLASH_ATTR connect_cb(void * arg) {
 }
 void ICACHE_FLASH_ATTR reconnect_cb(void * args, sint8 err) {
 	os_printf("reconnect_cb called\n");
+	/*if (wifi_station_disconnect()) os_printf("wifi_station_disconnect ok\n");
+	else os_printf("wifi_station_disconnect failed\n");
+	if (wifi_station_connect()) os_printf("wifi_station_connect ok\n");
+	else os_printf("wifi_station_connect failed\n");*/
 }
 void ICACHE_FLASH_ATTR disconnect_cb(void * args) {
 	struct espconn *con = (struct espconn *)args;
 	if (con) {
 		os_printf("disconnecting from %d.%d.%d.%d\n", con->proto.tcp->remote_ip[0], con->proto.tcp->remote_ip[1], con->proto.tcp->remote_ip[2], con->proto.tcp->remote_ip[3]);
-		espconn_delete(con);
+		/*espconn_delete(con);
 		if (con->proto.tcp != NULL) {
 			os_free(con->proto.tcp);
 		}
-		os_free(con);
+		os_free(con);*/
 	}
 }
 void ICACHE_FLASH_ATTR sent_cb(void * args) {
@@ -807,6 +875,8 @@ void ICACHE_FLASH_ATTR wifi_scan_cb(void * args, STATUS status) {
 			bss_prev = bss;
 			bss = (struct bss_info *)&(bss->next);
 		} while (bss != bss_prev);
+		if (wifi_station_connect()) os_printf("Re-connected\n");
+		else os_printf("wifi_station_connect() failed\n");
 	}
 }
 void ICACHE_FLASH_ATTR sysinfo(void) {
