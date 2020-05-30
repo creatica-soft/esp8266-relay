@@ -884,9 +884,6 @@ uint8 ICACHE_FLASH_ATTR cron_parser(char * cronline, bool onTimer) {
 	char * cron_subfield[6][60];
 	char * subfield_min = NULL;
 	char * subfield_max = NULL;
-	/*char * val = os_malloc(255);
-	char * val2 = os_malloc(6);
-	char * val3 = os_malloc(3);*/
 	uint8 i, j, k, min, max;
 	bool range;
 	i = 0;
