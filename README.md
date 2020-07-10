@@ -3,6 +3,7 @@ esp8266-timer-relay is based on $2USD ESP-01s chip with relay from Aliexpress - 
 ## simple sntp time-based relay
 
 user_main.c is an example of programming esp8266 wifi chip using ESP8266 Non-OS SDK.
+
 timer.c is an example of programming esp8266 wifi chip using ESP8266 RTOS SDK.
 
 The module is configured to connect to a WiFi access point using dynamic or defined static IP, configure DNS and SNTP time servers
