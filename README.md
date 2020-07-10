@@ -1,6 +1,9 @@
 esp8266-timer-relay is based on $2USD ESP-01s chip with relay from Aliexpress - https://www.aliexpress.com/item/32843645421.html
 
-An example of programming esp8266 wifi chip using ESP8266 Non-OS SDK - simple sntp time-based relay.
+## simple sntp time-based relay
+
+user_main.c is an example of programming esp8266 wifi chip using ESP8266 Non-OS SDK.
+timer.c is an example of programming esp8266 wifi chip using ESP8266 RTOS SDK.
 
 The module is configured to connect to a WiFi access point using dynamic or defined static IP, configure DNS and SNTP time servers
 and get time from one of SNTP servers.
@@ -18,7 +21,9 @@ Timer parameters (crontab lines, relay_arm_interval and a timezone) may be updat
 
 The first line will turn a relay on 5 seconds after each minute. The second line will turn it back off 20 seconds after each minute. The third line sets relay_arm_interval to 1000ms, basically, to check the cron schedule every second. The fourth line sets the timezone to UTC+12.
 
-## Building Instructions
+For timer.c the last parameter TZ is a string in TZ format (see tzset() for more into); for example, NZST-12NZDT-13,M10.1.0,M3.3.0
+
+## Building Instructions for Non-OS SDK
 
 1. Review and update defines
 
@@ -85,4 +90,45 @@ Power cycle after each flash!
 
 ```
 miniterm --raw /dev/ttyAMA0 74880
+```
+
+## Building Instructions for RTOS SDK
+
+Install toolchain for crosscompiling (may not be easy for arm, old esp-open-sdk toolchain works fine despite of warnings):
+ * supported toolchain version is 1.22.0-92-g8facf4c
+ * supported compiler version 5.2.0
+
+```
+export PATH=~/esp-open-sdk/xtensa-lx106-elf/bin:$PATH
+cd ~
+wget https://github.com/espressif/ESP8266_RTOS_SDK/archive/v3.1.2.tar.gz
+tar -zxf ESP8266_RTOS_SDK-v3.1.2.tar.gz
+mkdir -p ESP8266_RTOS_SDK-3.1.2/timer/main
+```
+
+RTOS SDK Manual at https://docs.espressif.com/projects/esp8266-rtos-sdk/en/latest/get-started/index.html
+
+Review and update defines in timer.c
+
+```
+cp timer.c ESP8266_RTOS_SDK-3.1.2/timer/main
+cp ESP8266_RTOS_SDK-3.1.2/examples/get-started/project-template/Makefile ESP8266_RTOS_SDK-3.1.2/timer
+touch ESP8266_RTOS_SDK-3.1.2/timer/main/component.mk
+export IDF_PATH=~/ESP8266_RTOS_SDK-3.1.2
+make menuconfig # to produce sdkconfig
+make
+```
+
+Power off, ground GPIO0 before flashing, power on
+
+```
+make flash
+```
+
+Power off, unground GPIO0 for normal operation, power on
+
+Run terminal emulator to see the ESP_LOGI(TAG,) messages:
+
+```
+miniterm --raw /dev/ttyAMA1 74880
 ```
