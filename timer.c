@@ -94,6 +94,7 @@ I (319) timer: Connecting to ssid
 #include "driver/gpio.h"
 #include "esp_ota_ops.h"
 
+//#define NDEBUG //to get read of ESP_LOG messages
 #define SSID "ssid"
 #define PASSPHRASE "password"
 //iw wlan0 station dump to check the signal >= -50dBm is good 
@@ -152,12 +153,11 @@ TIMEZONE
 
 //OTA update of esp8266 flash with the new image
 #define HTTP_FW_UPDATE true
-#define FW_CHECK_INTERVAL 300000 //ms
+#define FW_CHECK_INTERVAL 180000 //ms
 #define FW_UPDATE_TASK_PRIORITY 4
-//increase timer version every time you modify this file to avoid re-downloading the same image over and over
-//but upload the binary to the web server with the previous version, i.e. /timer-1.bin
-#define FW_PATH "/timer-2.bin"
-
+//increase timer version every time you modify this file to avoid re-downloading the same image over and over;
+//for example, make it /timer-2.bin but upload the binary to the web server with the previously flashed version, i.e. /timer-1.bin
+#define FW_PATH "/timer-1.bin"
 
 //Station static IP config
 #define USE_STATIC_IP true
@@ -253,52 +253,76 @@ static int cron_parser(char * cronline, bool onTimer) {
 			case 0: //seconds
 				if (min == 255) { min = 0; max = 59; }
 				if (min >= 60 || max >= 60) return 3;
+				//if (onTimer) printf("cron_parser: secondsOn ");
+				//else printf("cron_parser: secondsOff ");
 				for (k = min; k <= max; k++) {
 					if (onTimer) secondsOn[k] = 1;
 					else secondsOff[k] = 1;
+					//printf("%d ", k);
 				}
+				//printf("\n");
 				break;
 			case 1: //minutes
 				if (min == 255) { min = 0; max = 59; }
 				if (min >= 60 || max >= 60) return 4;
+				//if (onTimer) printf("cron_parser: minutesOn ");
+				//else printf("cron_parser: minutesOff ");
 				for (k = min; k <= max; k++) {
 					if (onTimer) minutesOn[k] = 1;
 					else minutesOff[k] = 1;
+					//printf("%d ", k);
 				}
+				//printf("\n");
 				break;
 			case 2: //hours
 				if (min == 255) { min = 0; max = 23; }
 				if (min >= 24 || max >= 24) return 5;
+				//if (onTimer) printf("cron_parser: hoursOn ");
+				//else printf("cron_parser: hoursOff ");
 				for (k = min; k <= max; k++) {
 					if (onTimer) hoursOn[k] = 1;
 					else hoursOff[k] = 1;
+					//printf("%d ", k);
 				}
+				//printf("\n");
 				break;
 			case 3: //days
 				if (min == 255) { min = 1; max = 31; }
 				min--; max--;
 				if (min >= 31 || max >= 31) return 6;
+				//if (onTimer) printf("cron_parser: daysOn ");
+				//else printf("cron_parser: daysOff ");
 				for (k = min; k <= max; k++) {
 					if (onTimer) daysOn[k] = 1;
 					else daysOff[k] = 1;
+					//printf("%d ", k);
 				}
+				//printf("\n");
 				break;
 			case 4: //months
 				if (min == 255) { min = 1; max = 12; }
 				min--; max--;
 				if (min >= 12 || max >= 12) return 7;
+				//if (onTimer) printf("cron_parser: monthsOn ");
+				//else printf("cron_parser: monthsOff ");
 				for (k = min; k <= max; k++) {
 					if (onTimer) monthsOn[k] = 1;
 					else monthsOff[k] = 1;
+					//printf("%d ", k);
 				}
+				//printf("\n");
 				break;
 			case 5: //day-of-week
 				if (min == 255) { min = 0; max = 6; }
 				if (min >= 7 || max >= 7) return 8;
+				//if (onTimer) printf("cron_parser: dweekOn ");
+				//else printf("cron_parser: dweekOff ");
 				for (k = min; k <= max; k++) {
 					if (onTimer) dweekOn[k] = 1;
 					else dweekOff[k] = 1;
+					//printf("%d ", k);
 				}
+				//printf("\n");
 				break;
 			}
 		}
@@ -323,20 +347,23 @@ static int parse_body(char * body) {
 	memset(monthsOff, 0, 12);
 	//	ESP_LOGI(TAG,"body:\n%s", body);
 
-	cronlineOn = strtok(body, "\r");
+	cronlineOn = strtok(body, "\r\n");
 	if (!cronlineOn) return 1;
-	//	ESP_LOGI(TAG,"cronlineOn %s", cronlineOn);
-	cronlineOff = strtok(NULL, "\r");
+	ESP_LOGI(TAG,"parse_body: cronlineOn %s", cronlineOn);
+	cronlineOff = strtok(NULL, "\r\n");
 	if (!cronlineOff) return 2;
-	//	ESP_LOGI(TAG,"cronlineOff %s", cronlineOff);
-	relay_task_interval_char = strtok(NULL, "\r");
+	ESP_LOGI(TAG,"parse_body: cronlineOff %s", cronlineOff);
+	relay_task_interval_char = strtok(NULL, "\r\n");
 	if (!relay_task_interval_char) return 3;
-	//	ESP_LOGI(TAG,"relay_task_interval_char %s", relay_task_interval_char);
-	if (isdigit((unsigned char)relay_task_interval_char[0]))
+	// ESP_LOGI(TAG,"relay_task_interval_char %s", relay_task_interval_char);
+	if (isdigit((unsigned char)relay_task_interval_char[0])) {
 		relay_task_interval = atoi(relay_task_interval_char);
+		ESP_LOGI(TAG, "parse_body: relay_task_interval %u", relay_task_interval);
+	}
 	else return 4;
-	timezone = strtok(NULL, "\r");
+	timezone = strtok(NULL, "\r\n");
 	if (!timezone) return 5;
+	ESP_LOGI(TAG, "parse_body: timezone %s", timezone);
 	tz = timezone;
 	if (strncmp(tz, TIMEZONE, sizeof(TIMEZONE)) != 0) {
 		ESP_LOGI(TAG, "parse_body: setting timezone %s...", tz);
@@ -345,9 +372,9 @@ static int parse_body(char * body) {
 	}
 
 	e = cron_parser(cronlineOn, true);
-	if (e != 0) ESP_LOGI(TAG, "cron_parser(cronlineOn) error %u", e);
+	if (e != 0) ESP_LOGE(TAG, "parse_body: cron_parser(cronlineOn) error %u", e);
 	e = cron_parser(cronlineOff, false);
-	if (e != 0) ESP_LOGI(TAG, "cron_parser(cronlineOff) error %u", e);
+	if (e != 0) ESP_LOGE(TAG, "parse_body: cron_parser(cronlineOff) error %u", e);
 	return 0;
 }
 
@@ -439,7 +466,7 @@ static void http_update_task(void *pvParameters)
 		} while (r > 0);
 		ESP_LOGI(TAG, "http_update_task: done reading from socket. Last read return=%d errno=%d\n", r, errno);
 
-		int http_status, content_len = 0, body_len;
+		int http_status, content_len = 0, body_len, e;
 		char * body, * cl = NULL;
 	
 		if (strncmp(buf, "HTTP/1.", 7) == 0) {
@@ -450,8 +477,13 @@ static void http_update_task(void *pvParameters)
 				body = strstr(buf, "\r\n\r\n");
 				if (body) body += 4;
 				body_len = strlen(body);
-				if (body_len == content_len && body_len != 0)
-					parse_body(body);
+				if (body_len == content_len && body_len != 0) {
+					e = parse_body(body);
+					if (e != 0) {
+						ESP_LOGE(TAG, "http_update_task: parse_body returned error %d", e);
+						goto sleep;
+					}
+				}
 				else
 				{
 					ESP_LOGE(TAG, "http_update_task: content_len != body_len or body_len = 0");
@@ -484,6 +516,8 @@ static void relay_task(void *arg) {
 	int i, j;
 	time_t now = 0;
 	struct tm timeinfo;
+	TickType_t xLastWakeTime;
+	TickType_t xPeriod;
 
 	while (1) {
 		time(&now);
@@ -501,9 +535,8 @@ static void relay_task(void *arg) {
 			}
 			i = 0;
 			if (!datetime_field[3]) {
-				ESP_LOGI(TAG, "turn_relay_on: hms is NULL - datetime is invalid");
-				vTaskDelete(NULL);
-				return;
+				ESP_LOGI(TAG, "relay_task: hms is NULL - datetime is invalid");
+				goto sleep;
 			}
 			hms[i] = strtok(datetime_field[3], ":");
 			while (hms[i] && i < 2) {
@@ -514,9 +547,8 @@ static void relay_task(void *arg) {
 				switch (i) {
 				case 0: //day-of-the-week
 					if (!datetime_field[i]) {
-						ESP_LOGI(TAG, "turn_relay_on: day-of-week is NULL");
-						vTaskDelete(NULL);
-						return;
+						ESP_LOGI(TAG, "relay_task: day-of-week is NULL");
+						goto sleep;
 					}
 					if (strncmp(datetime_field[i], "Sun", 3) == 0) j = 0;
 					else if (strncmp(datetime_field[i], "Mon", 3) == 0) j = 1;
@@ -526,18 +558,16 @@ static void relay_task(void *arg) {
 					else if (strncmp(datetime_field[i], "Fri", 3) == 0) j = 5;
 					else if (strncmp(datetime_field[i], "Sat", 3) == 0) j = 6;
 					else {
-						ESP_LOGI(TAG, "turn_relay_on: invalid day-of-week");
-						vTaskDelete(NULL);
-						return;
+						ESP_LOGI(TAG, "relay_task: invalid day-of-week");
+						goto sleep;
 					}
 					if (!dweekOn[j]) on = false;
 					if (!dweekOff[j]) off = false;
 					break;
 				case 1: //Month
 					if (!datetime_field[i]) {
-						ESP_LOGI(TAG, "turn_relay_on: month is NULL");
-						vTaskDelete(NULL);
-						return;
+						ESP_LOGI(TAG, "relay_task: month is NULL");
+						goto sleep;
 					}
 					if (strncmp(datetime_field[i], "Jan", 3) == 0) j = 0;
 					else if (strncmp(datetime_field[i], "Feb", 3) == 0) j = 1;
@@ -552,30 +582,26 @@ static void relay_task(void *arg) {
 					else if (strncmp(datetime_field[i], "Nov", 3) == 0) j = 10;
 					else if (strncmp(datetime_field[i], "Dec", 3) == 0) j = 11;
 					else {
-						ESP_LOGI(TAG, "turn_relay_on: invalid month");
-						vTaskDelete(NULL);
-						return;
+						ESP_LOGI(TAG, "relay_task: invalid month");
+						goto sleep;
 					}
 					if (!monthsOn[j]) on = false;
 					if (!monthsOff[j]) off = false;
 					break;
 				case 2: //day
 					if (!datetime_field[i]) {
-						ESP_LOGI(TAG, "turn_relay_on: day is NULL");
-						vTaskDelete(NULL);
-						return;
+						ESP_LOGI(TAG, "relay_task: day is NULL");
+						goto sleep;
 					}
 					if (isdigit((unsigned char)datetime_field[i][0]))
 						j = atoi(datetime_field[i]) - 1;
 					else {
-						ESP_LOGI(TAG, "turn_relay_on: days is not a number");
-						vTaskDelete(NULL);
-						return;
+						ESP_LOGI(TAG, "relay_task: days is not a number");
+						goto sleep;
 					}
 					if (j > 30) {
-						ESP_LOGI(TAG, "turn_relay_on: days are from 1 to 31");
-						vTaskDelete(NULL);
-						return;
+						ESP_LOGI(TAG, "relay_task: days are from 1 to 31");
+						goto sleep;
 					}
 					if (!daysOn[j])	on = false;
 					if (!daysOff[j]) off = false;
@@ -583,63 +609,54 @@ static void relay_task(void *arg) {
 				case 3: //hms
 					//hour
 					if (!hms[0]) {
-						ESP_LOGI(TAG, "turn_relay_on: hours is NULL");
-						vTaskDelete(NULL);
-						return;
+						ESP_LOGI(TAG, "relay_task: hours is NULL");
+						goto sleep;
 					}
 					if (isdigit((unsigned char)hms[0][0]))
 						j = atoi(hms[0]);
 					else {
-						ESP_LOGI(TAG, "turn_relay_on: hours is not a number");
-						vTaskDelete(NULL);
-						return;
+						ESP_LOGI(TAG, "relay_task: hours is not a number");
+						goto sleep;
 					}
 					if (j > 23) {
-						ESP_LOGI(TAG, "turn_relay_on: hours are from 0 to 23"); 
-						vTaskDelete(NULL);
-						return;
+						ESP_LOGI(TAG, "relay_task: hours are from 0 to 23");
+						goto sleep;
 					}
 					if (!hoursOn[j]) on = false;
 					if (!hoursOff[j]) off = false;
 
 					//minute
 					if (!hms[1]) {
-						ESP_LOGI(TAG, "turn_relay_on: minutes is NULL");
-						vTaskDelete(NULL);
-						return;
+						ESP_LOGI(TAG, "relay_task: minutes is NULL");
+						goto sleep;
 					}
 					if (isdigit((unsigned char)hms[1][0]))
 						j = atoi(hms[1]);
 					else {
-						ESP_LOGI(TAG, "turn_relay_on: minutes is not a number");
-						vTaskDelete(NULL);
-						return;
+						ESP_LOGI(TAG, "relay_task: minutes is not a number");
+						goto sleep;
 					}
 					if (j > 59) {
-						ESP_LOGI(TAG, "turn_relay_on: minutes are from 0 to 59");
-						vTaskDelete(NULL);
-						return;
+						ESP_LOGI(TAG, "relay_task: minutes are from 0 to 59");
+						goto sleep;
 					}
 					if (!minutesOn[j]) on = false;
 					if (!minutesOff[j]) off = false;
 
 					//seconds
 					if (!hms[2]) {
-						ESP_LOGI(TAG, "turn_relay_on: seconds is NULL");
-						vTaskDelete(NULL);
-						return;
+						ESP_LOGI(TAG, "relay_task: seconds is NULL");
+						goto sleep;
 					}
 					if (isdigit((unsigned char)hms[2][0]))
 						j = atoi(hms[2]);
 					else {
-						ESP_LOGI(TAG, "turn_relay_on: seconds is not a number");
-						vTaskDelete(NULL);
-						return;
+						ESP_LOGI(TAG, "relay_task: seconds is not a number");
+						goto sleep;
 					}
 					if (j > 59) {
-						ESP_LOGI(TAG, "turn_relay_on: seconds are from 0 to 59");
-						vTaskDelete(NULL);
-						return;
+						ESP_LOGI(TAG, "relay_task: seconds are from 0 to 59");
+						goto sleep;
 					}
 					if (!secondsOn[j]) on = false;
 					if (!secondsOff[j]) off = false;
@@ -648,25 +665,27 @@ static void relay_task(void *arg) {
 				if (!on && !off) break;
 			}
 			if (on) {
-				ESP_LOGI(TAG, "turning relay on...");
+				ESP_LOGI(TAG, "relay_task: turning relay on...");
 				gpio_set_level(GPIO_NUM_0, 0); //Set GPIO0 as low - level output.
 			}
 			else if (off) {
-				ESP_LOGI(TAG, "turning relay off...");
+				ESP_LOGI(TAG, "relay_task: turning relay off...");
 				gpio_set_level(GPIO_NUM_0, 1); //Set GPIO0 as high - level output.
+			}
+			else {
+				ESP_LOGI(TAG, "relay_task: the current time does not match any of the cronlines");
 			}
 		}
 		else {
-			ESP_LOGI(TAG, "unable to get time from sntp server");
-			//vTaskDelay(1000 / portTICK_PERIOD_MS);
-			vTaskDelay(pdMS_TO_TICKS(1000));
-			continue;
+			ESP_LOGI(TAG, "relay_task: unable to get time from sntp server");
+			goto sleep;
 		}
-		TickType_t xLastWakeTime = xTaskGetTickCount();
-		const TickType_t xPeriod = pdMS_TO_TICKS(relay_task_interval);
+
+	sleep:
+		xLastWakeTime = xTaskGetTickCount();
+		xPeriod = pdMS_TO_TICKS(relay_task_interval);
 		vTaskDelayUntil(&xLastWakeTime, xPeriod);
 	}
-
 }
 
 static void fw_update_task(void *arg) {
