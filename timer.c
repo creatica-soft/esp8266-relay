@@ -1,7 +1,7 @@
 /*
 === Relay controlled by SNTP timer (RTOS SDK based) ===
 
-Install toolchain for crosscompiling (may not be easy for arm, old esp-open-sdk toolchain works fine despite of warnings):
+Install toolchain for crosscompiling (may not be easy, old esp-open-sdk toolchain works fine despite of warnings):
  - supported toolchain version is 1.22.0-92-g8facf4c
  - supported compiler version 5.2.0
 
@@ -12,9 +12,7 @@ wget https://github.com/espressif/ESP8266_RTOS_SDK/archive/v3.1.2.tar.gz
 tar -zxf ESP8266_RTOS_SDK-v3.1.2.tar.gz
 mkdir -p ESP8266_RTOS_SDK-3.1.2/timer/main
 
-RTOS SDK Manual at https://docs.espressif.com/projects/esp8266-rtos-sdk/en/latest/get-started/index.html
-
-Review and update defines in timer.c
+Review and update defines in user_main.c
 
 cp timer.c ESP8266_RTOS_SDK-3.1.2/timer/main
 cp ESP8266_RTOS_SDK-3.1.2/examples/get-started/project-template/Makefile ESP8266_RTOS_SDK-3.1.2/timer
@@ -94,6 +92,7 @@ I (319) timer: Connecting to ssid
 #include "lwip/dhcp.h"
 #include "lwip/apps/sntp.h"
 #include "driver/gpio.h"
+#include "esp_ota_ops.h"
 
 #define SSID "ssid"
 #define PASSPHRASE "password"
@@ -134,7 +133,6 @@ I (319) timer: Connecting to ssid
 
 #define TIMER_ON_CRONLINE "* 0 9,11,13,15,17 * * *" //sec min hour day month day-of-week
 #define TIMER_OFF_CRONLINE "* 0 10,12,14,16,18 * * *" //sec min hour day month day-of-week
-//timezone from -11 to 13
 #define RELAY_TASK_INTERVAL 55000 //period in ms to check if relay should be on or off
 								//set it based on relay schedule
 #define RELAY_TASK_PRIORITY 6 //should be lower than 8
@@ -148,8 +146,18 @@ TIMEZONE
 */
 #define WEB_SERVER_PATH "/timer-parameters.txt"
 #define HTTP_METHOD "GET"
-#define HTTP_VERSION "HTTP/1.1"
-#define USER_AGENT "esp8266"
+#define HTTP_VERSION "HTTP/1.0" //HTTP/1.1 may need to deal with Transfer-Encoding
+#define USER_AGENT "esp8266-timer"
+#define HTTP_TIMEOUT 3 //sec
+
+//OTA update of esp8266 flash with the new image
+#define HTTP_FW_UPDATE true
+#define FW_CHECK_INTERVAL 300000 //ms
+#define FW_UPDATE_TASK_PRIORITY 4
+//increase timer version every time you modify this file to avoid re-downloading the same image over and over
+//but upload the binary to the web server with the previous version, i.e. /timer-1.bin
+#define FW_PATH "/timer-2.bin"
+
 
 //Station static IP config
 #define USE_STATIC_IP true
@@ -330,6 +338,11 @@ static int parse_body(char * body) {
 	timezone = strtok(NULL, "\r");
 	if (!timezone) return 5;
 	tz = timezone;
+	if (strncmp(tz, TIMEZONE, sizeof(TIMEZONE)) != 0) {
+		ESP_LOGI(TAG, "parse_body: setting timezone %s...", tz);
+		setenv("TZ", tz, 1);
+		tzset();
+	}
 
 	e = cron_parser(cronlineOn, true);
 	if (e != 0) ESP_LOGI(TAG, "cron_parser(cronlineOn) error %u", e);
@@ -338,24 +351,20 @@ static int parse_body(char * body) {
 	return 0;
 }
 
-static void http_update_task(void *pvParameters)
-{
+static int request(const char * media_type, const char * request_file) {
 	const struct addrinfo hints = {
 		.ai_family = AF_INET,
 		.ai_socktype = SOCK_STREAM,
 	};
 	struct addrinfo *res;
 	struct in_addr *addr;
-	int s, r;
-	char b[255];
-	char buf[1460];
+	int s;
 
 	while (1) {
 		int err = getaddrinfo(WEB_SERVER, WEB_SERVER_PORT, &hints, &res);
 
 		if (err != 0 || res == NULL) {
 			ESP_LOGE(TAG, "DNS lookup failed err=%d res=%p", err, res);
-			//vTaskDelay(1000 / portTICK_PERIOD_MS);
 			vTaskDelay(pdMS_TO_TICKS(1000));
 			continue;
 		}
@@ -365,96 +374,102 @@ static void http_update_task(void *pvParameters)
 		s = socket(res->ai_family, res->ai_socktype, 0);
 		if (s < 0) {
 			ESP_LOGE(TAG, "... Failed to allocate socket, error %d", errno);
-			freeaddrinfo(res);
-			//vTaskDelay(1000 / portTICK_PERIOD_MS);
-			vTaskDelay(pdMS_TO_TICKS(1000));
-			continue;
+			goto sleep;
 		}
 		ESP_LOGI(TAG, "... allocated socket");
 
 		if (connect(s, res->ai_addr, res->ai_addrlen) != 0) {
 			ESP_LOGE(TAG, "... socket connect failed errno=%d", errno);
-			close(s);
-			freeaddrinfo(res);
-			//vTaskDelay(4000 / portTICK_PERIOD_MS);
-			vTaskDelay(pdMS_TO_TICKS(1000));
-			continue;
+			goto sleep;
 		}
 
 		ESP_LOGI(TAG, "... connected");
-		freeaddrinfo(res);
 
-		char buff[68 + strlen(HTTP_METHOD) + strlen(WEB_SERVER_PATH) + strlen(HTTP_VERSION) + strlen(WEB_SERVER) + strlen(WEB_SERVER_PORT) + strlen(USER_AGENT)];
-		uint16_t l = sprintf(buff, "%s %s %s\r\nHost: %s:%s\r\nConnection: close\r\nUser-Agent: %s\r\nAccept: text/plain\r\n\r\n", HTTP_METHOD, WEB_SERVER_PATH, HTTP_VERSION, WEB_SERVER, WEB_SERVER_PORT, USER_AGENT);
+		char buff[1024];
+		int l = sprintf(buff, "%s %s %s\r\nHost: %s:%s\r\nConnection: close\r\nUser-Agent: %s\r\nAccept: %s\r\n\r\n", HTTP_METHOD, request_file, HTTP_VERSION, WEB_SERVER, WEB_SERVER_PORT, USER_AGENT, media_type);
 		ESP_LOGI(TAG, "sending GET request:\n%s", buff);
 
 		if (write(s, buff, l) < 0) {
 			ESP_LOGE(TAG, "... socket send failed");
-			close(s);
-			//vTaskDelay(4000 / portTICK_PERIOD_MS);
-			vTaskDelay(pdMS_TO_TICKS(1000));
-			continue;
+			goto sleep;
 		}
 		ESP_LOGI(TAG, "... socket send success");
 
 		struct timeval receiving_timeout;
-		receiving_timeout.tv_sec = 5;
+		receiving_timeout.tv_sec = HTTP_TIMEOUT;
 		receiving_timeout.tv_usec = 0;
 		if (setsockopt(s, SOL_SOCKET, SO_RCVTIMEO, &receiving_timeout, sizeof(receiving_timeout)) < 0) {
 			ESP_LOGE(TAG, "... failed to set socket receiving timeout");
-			close(s);
-			//vTaskDelay(4000 / portTICK_PERIOD_MS);
-			vTaskDelay(pdMS_TO_TICKS(1000));
-			//pdMS_TO_TICKS() to convert ms into ticks can be used instead of 4000 / portTICK_PERIOD_MS
-			continue;
+			goto sleep;
 		}
 		ESP_LOGI(TAG, "... set socket receiving timeout success");
+		freeaddrinfo(res); 
+		break;
 
-		/* Read HTTP response */
-		int count = 0;
-		bzero(buf, sizeof(buf));
+	sleep:
+		freeaddrinfo(res);
+		if (s >= 0) close(s);
+		vTaskDelay(pdMS_TO_TICKS(1000));
+		continue;
+	}
+	return s;
+}
+
+static void http_update_task(void *pvParameters)
+{
+	char buf[1024], * b = buf;
+	int s, r = 0, t = sizeof(buf);
+
+	while (1) {
+		s = request("text/plain", WEB_SERVER_PATH);
+
+		/* Read HTTP response, r will be -1 if socket times out and no data received */
+		memset(buf, 0, sizeof(buf));
 		do {
-			bzero(b, sizeof(b));
-			r = read(s, b, sizeof(b) - 1);
+			r = read(s, b, t);
 			for (int i = 0; i < r; i++) {
 				putchar(b[i]);
-				if (count < sizeof(buf)) buf[count++] = b[i];
-				else ESP_LOGI(TAG, "receive buffer is full - size %d", sizeof(buf));
+			}
+			b += r;
+			t = buf + sizeof(buf) - b;
+			if (t <= 0) {
+				ESP_LOGE(TAG, "http_update_task: receive buffer is full");
+				goto sleep;
 			}
 		} while (r > 0);
-		ESP_LOGI(TAG, "... done reading from socket. Last read return=%d errno=%d\r\n", r, errno);
-		close(s);
+		ESP_LOGI(TAG, "http_update_task: done reading from socket. Last read return=%d errno=%d\n", r, errno);
 
-		int http_status = -1;
-		char * body;
-		char * cl = NULL;
-		int content_len = 0;
-		int e;
-		if (buf[0] != '\0') {
-			cl = strstr(buf, "Content-Length: ");
-			if (cl) content_len = atoi(cl + 16);
-			if (strncmp(buf, HTTP_VERSION, strlen(HTTP_VERSION)) == 0) {
-				http_status = atoi(buf + strlen(HTTP_VERSION) + 1);
-				if (http_status == 200) {
-					body = strstr(buf, "\r\n\r\n") + 4;
-					int body_len = strlen(body);
-					if (body_len == content_len)
-						parse_body(body);
+		int http_status, content_len = 0, body_len;
+		char * body, * cl = NULL;
+	
+		if (strncmp(buf, "HTTP/1.", 7) == 0) {
+			http_status = atoi(buf + strlen(HTTP_VERSION) + 1);
+			if (http_status == 200) {
+				cl = strstr(buf, "Content-Length: ");
+				if (cl) content_len = atoi(cl + 16);
+				body = strstr(buf, "\r\n\r\n");
+				if (body) body += 4;
+				body_len = strlen(body);
+				if (body_len == content_len && body_len != 0)
+					parse_body(body);
+				else
+				{
+					ESP_LOGE(TAG, "http_update_task: content_len != body_len or body_len = 0");
+					goto sleep;
 				}
-				else ESP_LOGI(TAG, "receive_cb error: http_status %d", http_status);
 			}
 			else {
-				e = parse_body(buf);
-				if (e != 0) ESP_LOGI(TAG, "parse_body error %u", e);
+				ESP_LOGE(TAG, "http_update_task: http_status %d", http_status);
+				goto sleep;
 			}
 		}
-		else ESP_LOGI(TAG, "http_get_task: http response is empty");
-		if (strncmp(tz, TIMEZONE, sizeof(TIMEZONE)) != 0) {
-			ESP_LOGI(TAG, "http_get_task: setting timezone %s...", tz);
-			setenv("TZ", tz, 1);
-			tzset();
+		else {
+			ESP_LOGE(TAG, "http_update_task: not an HTTP packet");
+			goto sleep;
 		}
 
+	sleep:
+		close(s);
 		TickType_t xLastWakeTime = xTaskGetTickCount();
 		const TickType_t xPeriod = pdMS_TO_TICKS(HTTP_UPDATE_INTERVAL);
 		vTaskDelayUntil(&xLastWakeTime, xPeriod);
@@ -654,7 +669,97 @@ static void relay_task(void *arg) {
 
 }
 
-static void esp_config_task(void *pvParameter)
+static void fw_update_task(void *arg) {
+	int s, r;
+	char buf[1460];
+	int http_status;
+	char * body;
+	const esp_partition_t * upgrade_partition;
+	esp_ota_handle_t ota_handle = NULL;
+	esp_err_t e;
+
+	while (1) {
+		ESP_LOGI(TAG, "fw_update_task: checking for new timer image %s...", FW_PATH);
+		s = request("application/octet-stream", FW_PATH);
+		
+		memset(buf, 0, sizeof(buf));
+		r = read(s, buf, sizeof(buf));
+
+		if (strncmp(buf, "HTTP/1.", 7) == 0) {
+			http_status = atoi(buf + strlen(HTTP_VERSION) + 1);
+			if (http_status == 200) {
+				upgrade_partition = esp_ota_get_next_update_partition(NULL);
+				if (upgrade_partition) {
+					e = esp_ota_begin(upgrade_partition, OTA_SIZE_UNKNOWN, &ota_handle);
+					if (e != ESP_OK) {
+						ESP_LOGE(TAG, "fw_update_task: esp_ota_begin failed with error %u", e);
+						goto sleep;
+					}
+					body = strstr(buf, "\r\n\r\n");
+					if (body) {
+						body += 4;
+						r -= (body - buf);
+						if (r > 0) {
+							e = esp_ota_write(ota_handle, body, r);
+							if (e != ESP_OK) {
+								ESP_LOGE(TAG, "fw_update_task: esp_ota_write failed with error %u", e);
+								goto sleep;
+							}
+						}
+					}
+				}
+				else {
+					ESP_LOGE(TAG, "fw_update_task: unable to get next update partition");
+					goto sleep;
+				}
+			}
+			else if (http_status == 404) {
+				ESP_LOGI(TAG, "fw_update_task: no new timer image available. Next check is in %u ms", FW_CHECK_INTERVAL);
+				goto sleep;
+			}
+			else {
+				ESP_LOGE(TAG, "fw_update_task: http_status %d", http_status);
+				goto sleep;
+			}
+		}
+		else {
+			ESP_LOGE(TAG, "fw_update_task: not an HTTP packet");
+			goto sleep;
+		}
+
+		do {
+			memset(buf, 0, sizeof(buf));
+			r = read(s, buf, sizeof(buf));
+			e = esp_ota_write(ota_handle, buf, r);
+			if (e != ESP_OK) {
+				ESP_LOGE(TAG, "fw_update_task: esp_ota_write failed with error %u", e);
+				goto sleep;
+			}
+		} while (r > 0);
+		ESP_LOGI(TAG, "fw_update_task: done reading from socket. Last read return=%d errno=%d\n", r, errno);		
+		
+		e = esp_ota_end(ota_handle);
+		if (e != ESP_OK) {
+			ESP_LOGE(TAG, "fw_update_task: esp_ota_end failed with error %u", e);
+			goto sleep;
+		}
+		ESP_LOGI(TAG, "fw_update_task: done uploading the new image. Rebooting...\n");
+		e = esp_ota_set_boot_partition(upgrade_partition);
+		if (e != ESP_OK) {
+			ESP_LOGE(TAG, "fw_update_task: esp_ota_set_boot_partition failed with error %u", e);
+			goto sleep;
+		}
+		esp_restart();
+
+	sleep:
+		close(s);
+		TickType_t xLastWakeTime = xTaskGetTickCount();
+		const TickType_t xPeriod = pdMS_TO_TICKS(FW_CHECK_INTERVAL);
+		vTaskDelayUntil(&xLastWakeTime, xPeriod);
+	}
+}
+
+static void esp_config_task(void *arg)
 {
 	EventBits_t uxBits = xEventGroupWaitBits(wifi_event_group, CONNECTED_BIT, false, true, portMAX_DELAY);
 	if (uxBits & CONNECTED_BIT) {
@@ -713,6 +818,9 @@ static void esp_config_task(void *pvParameter)
 				ESP_LOGE(TAG, "failed to create http update task");
 		if (pdPASS != xTaskCreate(&relay_task, "relay_task", 8192, NULL, RELAY_TASK_PRIORITY, NULL))
 			ESP_LOGE(TAG, "failed to create relay task");
+		if (HTTP_FW_UPDATE)
+			if (pdPASS != xTaskCreate(&fw_update_task, "fw_update_task", 8192, NULL, FW_UPDATE_TASK_PRIORITY, NULL))
+				ESP_LOGE(TAG, "failed to create fw update task");
 	}
 	else ESP_LOGI(TAG, "Timeout connecting to WiFi....");
 	vTaskDelete(NULL);
@@ -760,9 +868,11 @@ static esp_err_t event_handler(void *ctx, system_event_t *evt)
 		case WIFI_AUTH_WPA2_ENTERPRISE:
 			mode = "wpa2_enterprise";
 			break;
+		case WIFI_AUTH_MAX:
+			mode = "max";
+			break;
 		default:
 			mode = "unknown";
-			break;
 		}
 		ESP_LOGI(TAG, "connected to ssid %s, channel %d, authmode %s",
 			evt->event_info.connected.ssid,
