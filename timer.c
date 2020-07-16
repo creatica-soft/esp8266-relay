@@ -134,6 +134,7 @@ I (319) timer: Connecting to ssid
 
 #define TIMER_ON_CRONLINE "* 0 9,11,13,15,17 * * *" //sec min hour day month day-of-week
 #define TIMER_OFF_CRONLINE "* 0 10,12,14,16,18 * * *" //sec min hour day month day-of-week
+//timezone from -11 to 13
 #define RELAY_TASK_INTERVAL 55000 //period in ms to check if relay should be on or off
 								//set it based on relay schedule
 #define RELAY_TASK_PRIORITY 6 //should be lower than 8
@@ -512,14 +513,18 @@ static void relay_task(void *arg) {
 	char datetime[64];
 	char * datetime_field[4];//do not need year
 	char * hms[3];
-	bool on = true, off = true;
+	bool on, off;
 	int i, j;
-	time_t now = 0;
+	time_t now;
 	struct tm timeinfo;
 	TickType_t xLastWakeTime;
 	TickType_t xPeriod;
 
 	while (1) {
+		on = true;
+		off = true;
+		now = 0;
+		memset(&timeinfo, 0, sizeof(timeinfo));
 		time(&now);
 		localtime_r(&now, &timeinfo);
 		if (timeinfo.tm_year >= 120) { //we got the time
@@ -529,25 +534,29 @@ static void relay_task(void *arg) {
 
 			i = 0;
 			datetime_field[i] = strtok(datetime, " ");
+			//ESP_LOGI(TAG, "relay_task: datetime_field[%d] %s", i, datetime_field[i]);
 			while (datetime_field[i] && i < 3) {
 				i++;
 				datetime_field[i] = strtok(NULL, " ");
+				//ESP_LOGI(TAG, "relay_task: datetime_field[%d] %s", i, datetime_field[i]);
 			}
 			i = 0;
 			if (!datetime_field[3]) {
-				ESP_LOGI(TAG, "relay_task: hms is NULL - datetime is invalid");
+				ESP_LOGE(TAG, "relay_task: hms is NULL - datetime is invalid");
 				goto sleep;
 			}
 			hms[i] = strtok(datetime_field[3], ":");
+			//ESP_LOGI(TAG, "relay_task: hms[%d] %s", i, hms[i]);
 			while (hms[i] && i < 2) {
 				i++;
 				hms[i] = strtok(NULL, ":");
+				//ESP_LOGI(TAG, "relay_task: hms[%d] %s", i, hms[i]);
 			}
 			for (i = 0; i <= 3; i++) {
 				switch (i) {
 				case 0: //day-of-the-week
 					if (!datetime_field[i]) {
-						ESP_LOGI(TAG, "relay_task: day-of-week is NULL");
+						ESP_LOGE(TAG, "relay_task: day-of-week is NULL");
 						goto sleep;
 					}
 					if (strncmp(datetime_field[i], "Sun", 3) == 0) j = 0;
@@ -558,15 +567,22 @@ static void relay_task(void *arg) {
 					else if (strncmp(datetime_field[i], "Fri", 3) == 0) j = 5;
 					else if (strncmp(datetime_field[i], "Sat", 3) == 0) j = 6;
 					else {
-						ESP_LOGI(TAG, "relay_task: invalid day-of-week");
+						ESP_LOGE(TAG, "relay_task: invalid day-of-week");
 						goto sleep;
 					}
-					if (!dweekOn[j]) on = false;
-					if (!dweekOff[j]) off = false;
+					//ESP_LOGI(TAG, "relay_task: day-of-week %d", j);
+					if (!dweekOn[j]) {
+						on = false;
+						//ESP_LOGI(TAG, "relay_task: not in crontabOn line");
+					}
+					if (!dweekOff[j]) {
+						off = false;
+						//ESP_LOGI(TAG, "relay_task: not in crontabOff line");
+					}
 					break;
 				case 1: //Month
 					if (!datetime_field[i]) {
-						ESP_LOGI(TAG, "relay_task: month is NULL");
+						ESP_LOGE(TAG, "relay_task: month is NULL");
 						goto sleep;
 					}
 					if (strncmp(datetime_field[i], "Jan", 3) == 0) j = 0;
@@ -582,86 +598,122 @@ static void relay_task(void *arg) {
 					else if (strncmp(datetime_field[i], "Nov", 3) == 0) j = 10;
 					else if (strncmp(datetime_field[i], "Dec", 3) == 0) j = 11;
 					else {
-						ESP_LOGI(TAG, "relay_task: invalid month");
+						ESP_LOGE(TAG, "relay_task: invalid month");
 						goto sleep;
 					}
-					if (!monthsOn[j]) on = false;
-					if (!monthsOff[j]) off = false;
+					//ESP_LOGI(TAG, "relay_task: month %d", j);
+					if (!monthsOn[j]) {
+						on = false;
+						//ESP_LOGI(TAG, "relay_task: not in crontabOn line");
+					}
+					if (!monthsOff[j]) {
+						off = false;
+						//ESP_LOGI(TAG, "relay_task: not in crontabOff line");
+					}
 					break;
 				case 2: //day
 					if (!datetime_field[i]) {
-						ESP_LOGI(TAG, "relay_task: day is NULL");
+						ESP_LOGE(TAG, "relay_task: day is NULL");
 						goto sleep;
 					}
 					if (isdigit((unsigned char)datetime_field[i][0]))
 						j = atoi(datetime_field[i]) - 1;
 					else {
-						ESP_LOGI(TAG, "relay_task: days is not a number");
+						ESP_LOGE(TAG, "relay_task: days is not a number");
 						goto sleep;
 					}
 					if (j > 30) {
-						ESP_LOGI(TAG, "relay_task: days are from 1 to 31");
+						ESP_LOGE(TAG, "relay_task: days are from 1 to 31");
 						goto sleep;
 					}
-					if (!daysOn[j])	on = false;
-					if (!daysOff[j]) off = false;
+					//ESP_LOGI(TAG, "relay_task: day %d", j);
+					if (!daysOn[j]) {
+						on = false;
+						//ESP_LOGI(TAG, "relay_task: not in crontabOn line");
+					}
+					if (!daysOff[j]) {
+						off = false;
+						//ESP_LOGI(TAG, "relay_task: not in crontabOff line");
+					}
 					break;
 				case 3: //hms
 					//hour
 					if (!hms[0]) {
-						ESP_LOGI(TAG, "relay_task: hours is NULL");
+						ESP_LOGE(TAG, "relay_task: hours is NULL");
 						goto sleep;
 					}
 					if (isdigit((unsigned char)hms[0][0]))
 						j = atoi(hms[0]);
 					else {
-						ESP_LOGI(TAG, "relay_task: hours is not a number");
+						ESP_LOGE(TAG, "relay_task: hours is not a number");
 						goto sleep;
 					}
 					if (j > 23) {
-						ESP_LOGI(TAG, "relay_task: hours are from 0 to 23");
+						ESP_LOGE(TAG, "relay_task: hours are from 0 to 23");
 						goto sleep;
 					}
-					if (!hoursOn[j]) on = false;
-					if (!hoursOff[j]) off = false;
+					//ESP_LOGI(TAG, "relay_task: hour %d", j);
+					if (!hoursOn[j]) {
+						on = false;
+						//ESP_LOGI(TAG, "relay_task: not in crontabOn line");
+					}
+					if (!hoursOff[j]) {
+						off = false;
+						//ESP_LOGI(TAG, "relay_task: not in crontabOff line");
+					}
 
 					//minute
 					if (!hms[1]) {
-						ESP_LOGI(TAG, "relay_task: minutes is NULL");
+						ESP_LOGE(TAG, "relay_task: minutes is NULL");
 						goto sleep;
 					}
 					if (isdigit((unsigned char)hms[1][0]))
 						j = atoi(hms[1]);
 					else {
-						ESP_LOGI(TAG, "relay_task: minutes is not a number");
+						ESP_LOGE(TAG, "relay_task: minutes is not a number");
 						goto sleep;
 					}
 					if (j > 59) {
-						ESP_LOGI(TAG, "relay_task: minutes are from 0 to 59");
+						ESP_LOGE(TAG, "relay_task: minutes are from 0 to 59");
 						goto sleep;
 					}
-					if (!minutesOn[j]) on = false;
-					if (!minutesOff[j]) off = false;
+					//ESP_LOGI(TAG, "relay_task: minute %d", j);
+					if (!minutesOn[j]) {
+						on = false;
+						//ESP_LOGI(TAG, "relay_task: not in crontabOn line");
+					}
+					if (!minutesOff[j]) {
+						off = false;
+						//ESP_LOGI(TAG, "relay_task: not in crontabOff line");
+					}
 
 					//seconds
 					if (!hms[2]) {
-						ESP_LOGI(TAG, "relay_task: seconds is NULL");
+						ESP_LOGE(TAG, "relay_task: seconds is NULL");
 						goto sleep;
 					}
 					if (isdigit((unsigned char)hms[2][0]))
 						j = atoi(hms[2]);
 					else {
-						ESP_LOGI(TAG, "relay_task: seconds is not a number");
+						ESP_LOGE(TAG, "relay_task: seconds is not a number");
 						goto sleep;
 					}
 					if (j > 59) {
-						ESP_LOGI(TAG, "relay_task: seconds are from 0 to 59");
+						ESP_LOGE(TAG, "relay_task: seconds are from 0 to 59");
 						goto sleep;
 					}
-					if (!secondsOn[j]) on = false;
-					if (!secondsOff[j]) off = false;
+					//ESP_LOGI(TAG, "relay_task: second %d", j);
+					if (!secondsOn[j]) {
+						on = false;
+						//ESP_LOGI(TAG, "relay_task: not in crontabOn line");
+					}
+					if (!secondsOff[j]) {
+						off = false;
+						//ESP_LOGI(TAG, "relay_task: not in crontabOff line");
+					}
 					break;
 				}
+				//ESP_LOGI(TAG, "relay_task: on is %u, off is %u, i = %d", on, off, i);
 				if (!on && !off) break;
 			}
 			if (on) {
@@ -677,7 +729,9 @@ static void relay_task(void *arg) {
 			}
 		}
 		else {
-			ESP_LOGI(TAG, "relay_task: unable to get time from sntp server");
+			ESP_LOGE(TAG, "relay_task: unable to get time from sntp server");
+			ESP_LOGI(TAG, "relay_task: out of precausion turning relay off...");
+			gpio_set_level(GPIO_NUM_0, 1); //Set GPIO0 as high - level output.
 			goto sleep;
 		}
 
