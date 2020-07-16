@@ -1,6 +1,6 @@
 esp8266-timer-relay is based on $2USD ESP-01s chip with relay from Aliexpress - https://www.aliexpress.com/item/32843645421.html
 
-## simple sntp time-based relay
+## simple sntp time-based relay with OTA firmware update for RTOS flavor
 
 user_main.c is an example of programming esp8266 wifi chip using ESP8266 Non-OS SDK.
 
