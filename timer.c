@@ -445,10 +445,13 @@ static int request(const char * media_type, const char * request_file) {
 
 static void http_update_task(void *pvParameters)
 {
-	char buf[1024], * b = buf;
-	int s, r = 0, t = sizeof(buf);
+	char buf[1024], * b;
+	int s, r, t;
 
 	while (1) {
+		b = buf;
+		t = sizeof(buf);
+		r = 0;
 		s = request("text/plain", WEB_SERVER_PATH);
 
 		/* Read HTTP response, r will be -1 if socket times out and no data received */
