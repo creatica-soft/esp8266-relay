@@ -63,6 +63,8 @@ I (319) timer: Configuring esp for scan method 0, channel 1...
 I (319) timer: Connecting to ssid
 */
 
+//#define NDEBUG //to get rid of ESP_ERROR_CHECK assert messages
+
 #include <stdlib.h>
 #include <string.h>
 #include <sys/socket.h>
@@ -78,6 +80,7 @@ I (319) timer: Connecting to ssid
 #include "esp_wifi.h"
 #include "esp_wifi_types.h"
 #include "esp_event_loop.h"
+#define LOG_LOCAL_LEVEL ESP_LOG_INFO
 #include "esp_log.h"
 #include "esp_ota_ops.h"
 
@@ -88,13 +91,11 @@ I (319) timer: Connecting to ssid
 #include "tcpip_adapter.h"
 #include "lwip/netif.h"
 #include "lwip/netdb.h"
-//#include "lwip/dns.h"
 #include "lwip/dhcp.h"
 #include "lwip/apps/sntp.h"
 #include "driver/gpio.h"
 #include "esp_ota_ops.h"
 
-//#define NDEBUG //to get rid of ESP_ERROR_CHECK assert messages
 #define SSID "ssid"
 #define PASSPHRASE "password"
 //iw wlan0 station dump to check the signal >= -50dBm is good 
@@ -122,13 +123,14 @@ I (319) timer: Connecting to ssid
 #define NTP0 "0.pool.ntp.org"
 #define NTP1 "1.pool.ntp.org"
 #define NTP2 "2.pool.ntp.org"
-#define DNS "192.168.1.1"
+#define DNS1 "192.168.1.1"
+#define DNS2 "8.8.8.8"
 
 //update timer parameters from http://WEB_SERVER:WEB_SERVER_PORT/WEB_SERVER_PATH
 #define HTTP_UPDATE true
 
 //check for new timer parameters every ms
-#define HTTP_UPDATE_INTERVAL 3600000
+#define HTTP_UPDATE_INTERVAL 600000
 #define HTTP_UPDATE_TASK_PRIORITY 5 //should be lower than 8
 #define WEB_SERVER "example.com"
 #define WEB_SERVER_PORT "80"
@@ -155,14 +157,14 @@ TIMEZONE
 
 //OTA update of esp8266 flash with the new image
 #define HTTP_FW_UPDATE true
-#define FW_CHECK_INTERVAL 180000 //ms
+#define FW_CHECK_INTERVAL 900000 //ms
 #define FW_UPDATE_TASK_PRIORITY 4
 //increase timer version every time you modify this file to avoid re-downloading the same image over and over;
 //for example, make it /timer-2.bin but upload the binary to the web server with the previously flashed version, i.e. /timer-1.bin
 #define FW_PATH "/timer-1.bin"
 
 //Station static IP config
-#define USE_STATIC_IP true
+#define USE_STATIC_IP false
 #define STATIC_IP "192.168.1.101"
 #define NETMASK "255.255.255.0"
 #define GATEWAY_IP "192.168.1.1"
@@ -878,17 +880,18 @@ static void esp_config_task(void *arg)
 			}
 
 			tcpip_adapter_dns_info_t prim_dns_ip;
-			//struct tcpip_adapter_dns_info_t sec_dns_ip;
+			tcpip_adapter_dns_info_t sec_dns_ip;
 
-			ipaddr_aton(DNS, &prim_dns_ip.ip);
-			//ipaddr_aton(DNS2, sec_dns_ip.ip);
-			ESP_LOGI(TAG, "setting dns ip %s...", DNS);
+			ipaddr_aton(DNS1, &prim_dns_ip.ip);
+			ipaddr_aton(DNS2, &sec_dns_ip.ip);
+			ESP_LOGI(TAG, "setting primary dns %s...", DNS1);
 			ESP_ERROR_CHECK(tcpip_adapter_set_dns_info(WIFI_IF_STA, TCPIP_ADAPTER_DNS_MAIN, &prim_dns_ip));
-			//tcpip_adapter_set_dns_info(STATION_IF, TCPIP_ADAPTER_DNS_BACKUP, &sec_dns_ip);
+			ESP_LOGI(TAG, "setting secondary dns %s...", DNS2);
+			ESP_ERROR_CHECK(tcpip_adapter_set_dns_info(WIFI_IF_STA, TCPIP_ADAPTER_DNS_BACKUP, &sec_dns_ip));
 			tcpip_adapter_get_dns_info(WIFI_IF_STA, TCPIP_ADAPTER_DNS_MAIN, &prim_dns_ip);
-			//tcpip_adapter_get_dns_info(STATION_IF, TCPIP_ADAPTER_DNS_BACKUP, &sec_dns_ip);
-			ESP_LOGI(TAG, "dns 0: %s", ipaddr_ntoa(&prim_dns_ip.ip));
-			//ESP_LOGI(TAG, "dns 0: %s", ipaddr_ntoa(&prim_dns_ip.ip));
+			tcpip_adapter_get_dns_info(WIFI_IF_STA, TCPIP_ADAPTER_DNS_BACKUP, &sec_dns_ip);
+			ESP_LOGI(TAG, "dns 1: %s", ipaddr_ntoa(&prim_dns_ip.ip));
+			ESP_LOGI(TAG, "dns 2: %s", ipaddr_ntoa(&sec_dns_ip.ip));
 
 			ESP_LOGI(TAG, "Initializing SNTP...");
 			sntp_setoperatingmode(SNTP_OPMODE_POLL);
@@ -917,6 +920,9 @@ static void esp_config_task(void *arg)
 			if (HTTP_FW_UPDATE)
 				if (pdPASS != xTaskCreate(&fw_update_task, "fw_update_task", 8192, NULL, FW_UPDATE_TASK_PRIORITY, NULL))
 					ESP_LOGE(TAG, "failed to create fw update task");
+
+			ESP_ERROR_CHECK(gpio_set_direction(GPIO_NUM_0, GPIO_MODE_OUTPUT));
+
 			vTaskDelete(NULL);
 			break;
 		}
