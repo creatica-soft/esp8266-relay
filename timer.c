@@ -8,17 +8,17 @@ Install toolchain for crosscompiling (may not be easy, old esp-open-sdk toolchai
  export PATH=~/esp-open-sdk/xtensa-lx106-elf/bin:$PATH
 
 cd ~
-wget https://github.com/espressif/ESP8266_RTOS_SDK/archive/v3.1.2.tar.gz
-tar -zxf ESP8266_RTOS_SDK-v3.1.2.tar.gz
-mkdir -p ESP8266_RTOS_SDK-3.1.2/timer/main
+wget https://github.com/espressif/ESP8266_RTOS_SDK/releases/download/v3.3/ESP8266_RTOS_SDK-v3.3.zip
+unzip ESP8266_RTOS_SDK-v3.3.zip
+mkdir -p ESP8266_RTOS_SDK/timer/main
 
-Review and update defines in user_main.c
+Review and update defines in timer.c
 
-cp timer.c ESP8266_RTOS_SDK-3.1.2/timer/main
-cp ESP8266_RTOS_SDK-3.1.2/examples/get-started/project-template/Makefile ESP8266_RTOS_SDK-3.1.2/timer
-touch ESP8266_RTOS_SDK-3.1.2/timer/main/component.mk
+cp timer.c ESP8266_RTOS_SDK/timer/main
+cp ESP8266_RTOS_SDK/examples/get-started/project-template/Makefile ESP8266_RTOS_SDK/timer
+touch ESP8266_RTOS_SDK/timer/main/component.mk
 
-export IDF_PATH=~/ESP8266_RTOS_SDK-3.1.2
+export IDF_PATH=~/ESP8266_RTOS_SDK
 
 make menuconfig # to produce sdkconfig
 
@@ -30,41 +30,39 @@ make flash
 
 Power off, unground GPIO0 for normal operation, power on
 
-Run terminal emulator to see the ESP_LOGI(TAG,) messages:
+Run terminal emulator to see the ESP_LOGx(TAG,) messages:
 miniterm --raw /dev/ttyAMA1 74880
 
-I (37) boot: ESP-IDF  2nd stage bootloader
-I (37) boot: compile time 12:00:41
-I (43) qio_mode: Enabling default flash chip QIO
-I (43) boot: SPI Speed      : 40MHz
-I (45) boot: SPI Mode       : QIO
-I (49) boot: SPI Flash Size : 1MB
-I (53) boot: Partition Table:
-I (57) boot: ## Label            Usage          Type ST Offset   Length
-I (64) boot:  0 nvs              WiFi data        01 02 00009000 00004000
-I (71) boot:  1 otadata          OTA data         01 00 0000d000 00002000
-I (79) boot:  2 phy_init         RF data          01 01 0000f000 00001000
-I (86) boot:  3 ota_0            OTA app          00 10 00010000 00070000
-I (94) boot:  4 ota_1            OTA app          00 11 00080000 00070000
-I (101) boot: End of partition table
-E (105) boot: ota data partition invalid and no factory, will try all partitions
-I (114) esp_image: segment 0: paddr=0x00010010 vaddr=0x40210010 size=0x45138 (282936) map
-I (171) esp_image: segment 1: paddr=0x00055150 vaddr=0x3ffe8000 size=0x00678 (  1656) load
-I (171) esp_image: segment 2: paddr=0x000557d0 vaddr=0x3ffe8678 size=0x00110 (   272) load
-I (178) esp_image: segment 3: paddr=0x000558e8 vaddr=0x40100000 size=0x073d4 ( 29652) load
-I (192) boot: Loaded app from partition at offset 0x10000
-I (219) system_api: Base MAC address is not set, read default base MAC address from BLK0 of EFUSE
-I (219) system_api: Base MAC address is not set, read default base MAC address from BLK0 of EFUSE
-I (289) reset_reason: RTC reset 2 wakeup 0 store 4213622506, reason is 2
-unsupport wifi protocol bitmap
-I (309) timer: wifi set 802.11g (<54Mbps, 38-140m) mode ok
-I (309) timer: Setting esp to station mode...
-I (319) timer: Configuring esp for scan method 0, channel 1...
-I (319) timer: Connecting to ssid
+I (40) boot: ESP-IDF  2nd stage bootloader
+I (40) boot: compile time 10:12:18
+I (47) qio_mode: Enabling default flash chip QIO
+I (47) boot: SPI Speed      : 40MHz
+I (48) boot: SPI Mode       : QIO
+I (52) boot: SPI Flash Size : 1MB
+I (56) boot: Partition Table:
+I (60) boot: ## Label            Usage          Type ST Offset   Length
+I (67) boot:  0 nvs              WiFi data        01 02 00009000 00004000
+I (75) boot:  1 otadata          OTA data         01 00 0000d000 00002000
+I (82) boot:  2 phy_init         RF data          01 01 0000f000 00001000
+I (90) boot:  3 ota_0            OTA app          00 10 00010000 00070000
+I (97) boot:  4 ota_1            OTA app          00 11 00080000 00070000
+I (104) boot: End of partition table
+I (18024) esp_image: segment 0: paddr=0x00010010 vaddr=0x40210010 size=0x3d2f0 (250608) map
+I (18067) esp_image: segment 1: paddr=0x0004d308 vaddr=0x4024d300 size=0x09be4 ( 39908) map
+I (18075) esp_image: segment 2: paddr=0x00056ef4 vaddr=0x3ffe8000 size=0x005b0 (  1456) load
+I (18075) esp_image: segment 3: paddr=0x000574ac vaddr=0x40100000 size=0x008c0 (  2240) load
+I (18084) esp_image: segment 4: paddr=0x00057d74 vaddr=0x401008c0 size=0x057f8 ( 22520) load
+I (18097) boot: Loaded app from partition at offset 0x10000
+I (27860) system_api: Base MAC address is not set, read default base MAC address from EFUSE
+I (27864) system_api: Base MAC address is not set, read default base MAC address from EFUSE
+phy_version: 1159.0, 85b471e, Apr 21 2020, 17:03:08, RTOS new
+I (27927) phy_init: phy ver: 1159_0
+I (27930) reset_reason: RTC reset 2 wakeup 0 store 3, reason is 2
 */
 
-//#define NDEBUG //to get rid of ESP_ERROR_CHECK assert messages
-
+#define NDEBUG //to get rid of ESP_ERROR_CHECK asserts and subsequent aborts() which will exit the task loop
+               // and eventually (in 15sec) causes the task to be killed by watchdog timer because the timer is not reset
+               // as the task loop is gone. Perhaps, ESP_ERROR_CHECK is not the correct macro for tasks
 #include <stdlib.h>
 #include <string.h>
 #include <sys/socket.h>
@@ -76,30 +74,30 @@ I (319) timer: Connecting to ssid
 #include "freertos/task.h"
 #include "freertos/event_groups.h"
 
+#include "nvs.h"
+#include "nvs_flash.h"
+#include "tcpip_adapter.h"
 #include "esp_system.h"
-#include "esp_wifi.h"
 #include "esp_wifi_types.h"
+#include "esp_wifi.h"
 #include "esp_event_loop.h"
 #define LOG_LOCAL_LEVEL ESP_LOG_INFO
 #include "esp_log.h"
 #include "esp_ota_ops.h"
-
-#include "nvs.h"
-#include "nvs_flash.h"
-
-#include "rom/ets_sys.h"
-#include "tcpip_adapter.h"
 #include "lwip/netif.h"
 #include "lwip/netdb.h"
 #include "lwip/dhcp.h"
 #include "lwip/apps/sntp.h"
 #include "driver/gpio.h"
-#include "esp_ota_ops.h"
+#include "rom/ets_sys.h"
+//#include "rom/gpio.h"
+//#include "hw_timer.h"
 
 #define SSID "ssid"
 #define PASSPHRASE "password"
 //iw wlan0 station dump to check the signal >= -50dBm is good 
-// WIFI_POWER values, level0 - is the maximum power
+// WIFI_POWER values, range is from -128 to 127, level0 - is the maximum power
+// from esp_wifi.h:
 // [78, 127]: level0
 // [76, 77]: level1
 // [74, 75] : level2
@@ -112,14 +110,28 @@ I (319) timer: Connecting to ssid
 // [20, 27] : level5 -8dBm
 // [8, 19] : level5 -11dBm
 // [-128, 7] : level5 -14dBm
+// https://docs.espressif.com/projects/esp8266-rtos-sdk/en/latest/api-reference/wifi/esp_wifi.html gives different numbers
+// [82, 127]: level0
+// [78, 81] : level1
+// [74, 77] : level2
+// // [68, 73] : level3
+// [64, 67] : level4
+// [56, 63] : level5
+// [49, 55] : level5 - 2dBm
+// [33, 48] : level5 - 6dBm
+// [25, 32] : level5 - 8dBm
+// [13, 24] : level5 - 11dBm
+// [1, 12] : level5 - 14dBm
+// [-128, 0] : level5 - 17.5dBm
+
 #define WIFI_POWER 7
 //wifi modes: //WIFI_PROTOCOL_11B, WIFI_PROTOCOL_11G, WIFI_PROTOCOL_11N, can be ORed (|)
-#define WIFI_MODE WIFI_PROTOCOL_11G
-#define SSID_CHANNEL 1 //optional channel for AP scan
-#define MIN_SCANTIME 1000 //wifi min scan time in ms
-#define MAX_SCANTIME 5000 //wifi max scan time in ms
-#define WAIT_FOR_WIFI_RETRY_MS 10000 //retry waiting for wifi connection after 10 sec
-#define HOSTNAME "timer"
+//Currently only 802.11b or 802.11bg or 802.11bgn modes are supported
+#define WIFI_MODE WIFI_PROTOCOL_11B | WIFI_PROTOCOL_11G
+#define SSID_CHANNEL 5 //optional channel for AP scan
+#define MIN_SCANTIME 1000 //wifi min active scan time in ms
+#define MAX_SCANTIME 5000 //wifi max active scan time in ms, passive scan should be less than 1500ms to avoid disconnecting from the AP
+#define HOSTNAME "cabin-fan"
 #define NTP0 "0.pool.ntp.org"
 #define NTP1 "1.pool.ntp.org"
 #define NTP2 "2.pool.ntp.org"
@@ -130,7 +142,7 @@ I (319) timer: Connecting to ssid
 #define HTTP_UPDATE true
 
 //check for new timer parameters every ms
-#define HTTP_UPDATE_INTERVAL 600000
+#define HTTP_UPDATE_INTERVAL 300000
 #define HTTP_UPDATE_TASK_PRIORITY 5 //should be lower than 8
 #define WEB_SERVER "example.com"
 #define WEB_SERVER_PORT "80"
@@ -164,10 +176,30 @@ TIMEZONE
 #define FW_PATH "/timer-1.bin"
 
 //Station static IP config
-#define USE_STATIC_IP false
+#define USE_STATIC_IP true
 #define STATIC_IP "192.168.1.101"
 #define NETMASK "255.255.255.0"
 #define GATEWAY_IP "192.168.1.1"
+
+#define MAX_AP_RECORDS 10
+
+#define REMOTE_LOGGING true
+#define REMOTE_LOGGING_IP "192.168.1.1"
+#define REMOTE_LOGGING_UDP_PORT 6666
+#define CHAR_TIMEOUT 1000 //ms, waiting for new log char
+#define MAX_LOG_BUFFER_SIZE 1460
+#define LOGGING_TASK_PRIORITY 3
+
+#define ESP_CONFIG_TASK_WAIT_NOTIFY_MS 1000
+
+//task stack sizes - adjust if you see warnings or errors in the log
+#define REMOTE_LOGGING_TASK_SS 1000
+#define ESP_CONFIG_TASK_SS 2000
+#define HTTP_UPDATE_TASK_SS 4000
+#define FW_UPDATE_TASK_SS 4000
+#define RELAY_TASK_SS 1200
+#define HIGH_WATER_MARK_WARNING 50
+#define HIGH_WATER_MARK_CRITICAL 10
 
 unsigned int relay_task_interval = RELAY_TASK_INTERVAL;
 char * tz = TIMEZONE;
@@ -175,9 +207,32 @@ int secondsOn[60], minutesOn[60], hoursOn[24], daysOn[31], monthsOn[12], dweekOn
 int secondsOff[60], minutesOff[60], hoursOff[24], daysOff[31], monthsOff[12], dweekOff[7];
 
 static const char *TAG = "timer";
-const int CONNECTED_BIT = BIT0;
-static EventGroupHandle_t wifi_event_group;
+static uint8_t log_buffer[MAX_LOG_BUFFER_SIZE];
+static uint16_t log_buffer_pointer;
+static int sock;
+static struct sockaddr_in remote_addr;
+static TaskHandle_t esp_config_task_handle = NULL, logging_task_handle = NULL;
 
+static char * authmode(wifi_auth_mode_t mode) {
+	switch (mode) {
+	case WIFI_AUTH_OPEN:
+		return "open";
+	case WIFI_AUTH_WEP:
+		return "wep";
+	case WIFI_AUTH_WPA_PSK:
+		return "wpa_psk";
+	case WIFI_AUTH_WPA2_PSK:
+		return "wpa2_psk";
+	case WIFI_AUTH_WPA_WPA2_PSK:
+		return "wpa_wpa2_psk";
+	case WIFI_AUTH_WPA2_ENTERPRISE:
+		return "wpa2_enterprise";
+	case WIFI_AUTH_MAX:
+		return "max";
+	default:
+		return "unknown";
+	}
+}
 static void sysinfo(void) {
 	//ESP_LOGI(TAG, "cpu frequency %u", rtc_clk_cpu_freq_get());
 	//Overclock CPU (default is RTC_CPU_FREQ_80M)
@@ -383,102 +438,86 @@ static int parse_body(char * body) {
 	return e;
 }
 
-static int request(const char * media_type, const char * request_file) {
+static void http_update_task(void *arg)
+{
+	char buf[1024], * b;
+	int s, r, t;
 	const struct addrinfo hints = {
 		.ai_family = AF_INET,
 		.ai_socktype = SOCK_STREAM,
+		.ai_protocol = IPPROTO_TCP,
 	};
-	struct addrinfo *res;
-	struct in_addr *addr;
-	int s;
+	struct addrinfo * res;
+	uint32_t rand;
 
 	while (1) {
-		int err = getaddrinfo(WEB_SERVER, WEB_SERVER_PORT, &hints, &res);
+		ESP_LOGI(TAG, "http_update_task: checking for an updated crontab...");
+		b = buf;
+		t = sizeof(buf);
+		r = 0;
+		s = -1;
+		res = NULL;
+		rand = esp_random(); //return uint32_t from 0..UINT32_MAX range
+		//normalizing rand to be within 0..1000 range
+		rand /= (UINT32_MAX - rand);
+		rand = rand * 1000 / (1 + rand);
 
-		if (err != 0 || res == NULL) {
-			ESP_LOGE(TAG, "DNS lookup failed err=%d res=%p", err, res);
-			vTaskDelay(pdMS_TO_TICKS(1000));
-			ESP_LOGI(TAG, "http_update_task: out of precausion turning relay off...");
+		int err = getaddrinfo(WEB_SERVER, WEB_SERVER_PORT, &hints, &res);
+		if (err != 0) {
+			ESP_LOGE(TAG, "nslookup_task: DNS lookup failed - %d", err);
+			ESP_LOGW(TAG, "nslookup_task: out of precausion turning relay off...");
 			gpio_set_level(GPIO_NUM_0, 1); //Set GPIO0 as high - level output.
+			vTaskDelay(pdMS_TO_TICKS(rand));
 			continue;
 		}
-		addr = &((struct sockaddr_in *)res->ai_addr)->sin_addr;
-		ESP_LOGI(TAG, "DNS lookup succeeded. IP=%s", inet_ntoa(*addr));
 
 		s = socket(res->ai_family, res->ai_socktype, 0);
 		if (s < 0) {
-			ESP_LOGE(TAG, "... Failed to allocate socket, error %d", errno);
+			ESP_LOGE(TAG, "http_update_task: socket failed - %s", strerror(errno));
 			goto sleep;
 		}
-		ESP_LOGI(TAG, "... allocated socket");
+		//ESP_LOGI(TAG, "request: allocated socket");
 
 		if (connect(s, res->ai_addr, res->ai_addrlen) != 0) {
-			ESP_LOGE(TAG, "... socket connect failed errno=%d", errno);
+			ESP_LOGE(TAG, "http_update_task: connect failed - %s", strerror(errno));
 			goto sleep;
 		}
-
-		ESP_LOGI(TAG, "... connected");
-
-		char buff[1024];
-		int l = sprintf(buff, "%s %s %s\r\nHost: %s:%s\r\nConnection: close\r\nUser-Agent: %s\r\nAccept: %s\r\n\r\n", HTTP_METHOD, request_file, HTTP_VERSION, WEB_SERVER, WEB_SERVER_PORT, USER_AGENT, media_type);
-		ESP_LOGI(TAG, "sending GET request:\n%s", buff);
-
-		if (write(s, buff, l) < 0) {
-			ESP_LOGE(TAG, "... socket send failed");
-			goto sleep;
-		}
-		ESP_LOGI(TAG, "... socket send success");
+		//ESP_LOGI(TAG, "request: connected");
 
 		struct timeval receiving_timeout;
 		receiving_timeout.tv_sec = HTTP_TIMEOUT;
 		receiving_timeout.tv_usec = 0;
 		if (setsockopt(s, SOL_SOCKET, SO_RCVTIMEO, &receiving_timeout, sizeof(receiving_timeout)) < 0) {
-			ESP_LOGE(TAG, "... failed to set socket receiving timeout");
+			ESP_LOGE(TAG, "http_update_task: failed to set socket receiving timeout");
 			goto sleep;
 		}
-		ESP_LOGI(TAG, "... set socket receiving timeout success");
-		freeaddrinfo(res); 
-		break;
+		//ESP_LOGI(TAG, "request: set socket receiving timeout success");
 
-	sleep:
-		ESP_LOGI(TAG, "http_update_task: out of precausion turning relay off...");
-		gpio_set_level(GPIO_NUM_0, 1); //Set GPIO0 as high - level output.
-		freeaddrinfo(res);
-		if (s >= 0) close(s);
-		vTaskDelay(pdMS_TO_TICKS(1000));
-	}
-	return s;
-}
+		char buff[1024];
+		int l = sprintf(buff, "%s %s %s\r\nHost: %s:%s\r\nConnection: close\r\nUser-Agent: %s\r\nAccept: %s\r\n\r\n", HTTP_METHOD, WEB_SERVER_PATH, HTTP_VERSION, WEB_SERVER, WEB_SERVER_PORT, USER_AGENT, "text/plain");
+		//ESP_LOGI(TAG, "request: sending GET request:\n%s", buff);
+		if (write(s, buff, l) < 0) {
+			ESP_LOGE(TAG, "http_update_task: write failed - %s", strerror(errno));
+			goto sleep;
+		}
+		//ESP_LOGI(TAG, "request: socket send success");
 
-static void http_update_task(void *pvParameters)
-{
-	char buf[1024], * b;
-	int s, r, t;
-
-	while (1) {
-		b = buf;
-		t = sizeof(buf);
-		r = 0;
-
-		s = request("text/plain", WEB_SERVER_PATH);
-
-		/* Read HTTP response, r will be -1 if socket times out and no data received */
 		memset(buf, 0, sizeof(buf));
 		do {
 			r = read(s, b, t);
-			for (int i = 0; i < r; i++) {
+			/*for (int i = 0; i < r; i++) {
 				putchar(b[i]);
-			}
+			}*/
 			b += r;
 			t = buf + sizeof(buf) - b;
 			if (t <= 0) {
 				ESP_LOGE(TAG, "http_update_task: receive buffer is full");
-				ESP_LOGI(TAG, "http_update_task: out of precausion turning relay off...");
+				ESP_LOGW(TAG, "http_update_task: out of precausion turning relay off...");
 				gpio_set_level(GPIO_NUM_0, 1); //Set GPIO0 as high - level output.
 				goto sleep;
 			}
 		} while (r > 0);
-		ESP_LOGI(TAG, "http_update_task: done reading from socket. Last read return=%d errno=%d\n", r, errno);
+		//ESP_LOGI(TAG, "http_update_task: done reading from socket. Last read return=%d errno=%d\n", r, errno);
 
 		int http_status, content_len = 0, body_len, e;
 		char * body, * cl = NULL;
@@ -495,7 +534,7 @@ static void http_update_task(void *pvParameters)
 					e = parse_body(body);
 					if (e != 0) {
 						ESP_LOGE(TAG, "http_update_task: parse_body returned error %d", e);
-						ESP_LOGI(TAG, "http_update_task: out of precausion turning relay off...");
+						ESP_LOGW(TAG, "http_update_task: out of precausion turning relay off...");
 						gpio_set_level(GPIO_NUM_0, 1); //Set GPIO0 as high - level output.
 						goto sleep;
 					}
@@ -503,30 +542,38 @@ static void http_update_task(void *pvParameters)
 				else
 				{
 					ESP_LOGE(TAG, "http_update_task: content_len != body_len or body_len = 0");
-					ESP_LOGI(TAG, "http_update_task: out of precausion turning relay off...");
+					ESP_LOGW(TAG, "http_update_task: out of precausion turning relay off...");
 					gpio_set_level(GPIO_NUM_0, 1); //Set GPIO0 as high - level output.
 					goto sleep;
 				}
 			}
 			else {
 				ESP_LOGE(TAG, "http_update_task: http_status %d", http_status);
-				ESP_LOGI(TAG, "http_update_task: out of precausion turning relay off...");
+				ESP_LOGW(TAG, "http_update_task: out of precausion turning relay off...");
 				gpio_set_level(GPIO_NUM_0, 1); //Set GPIO0 as high - level output.
 				goto sleep;
 			}
 		}
 		else {
 			ESP_LOGE(TAG, "http_update_task: not an HTTP packet");
-			ESP_LOGI(TAG, "http_update_task: out of precausion turning relay off...");
+			ESP_LOGW(TAG, "http_update_task: out of precausion turning relay off...");
 			gpio_set_level(GPIO_NUM_0, 1); //Set GPIO0 as high - level output.
 			goto sleep;
 		}
 
 	sleep:
-		close(s);
-		TickType_t xLastWakeTime = xTaskGetTickCount();
-		const TickType_t xPeriod = pdMS_TO_TICKS(HTTP_UPDATE_INTERVAL);
-		vTaskDelayUntil(&xLastWakeTime, xPeriod);
+		if (res) freeaddrinfo(res);
+		if (s >= 0) {
+			shutdown(s, SHUT_RDWR);
+			close(s);
+		}
+		UBaseType_t hwm = uxTaskGetStackHighWaterMark(NULL);
+		if (hwm <= HIGH_WATER_MARK_CRITICAL)
+			ESP_LOGE(TAG, "remote_logging_task: uxTaskGetStackHighWaterMark %lu", hwm);
+		else if (hwm <= HIGH_WATER_MARK_WARNING)
+			ESP_LOGW(TAG, "remote_logging_task: uxTaskGetStackHighWaterMark %lu", hwm);
+
+		vTaskDelay(pdMS_TO_TICKS(HTTP_UPDATE_INTERVAL));
 	}
 }
 
@@ -539,7 +586,6 @@ static void relay_task(void *arg) {
 	time_t now;
 	struct tm timeinfo;
 	TickType_t xLastWakeTime;
-	TickType_t xPeriod;
 
 	while (1) {
 		on = true;
@@ -751,31 +797,86 @@ static void relay_task(void *arg) {
 		}
 		else {
 			ESP_LOGE(TAG, "relay_task: unable to get time from sntp server");
-			ESP_LOGI(TAG, "relay_task: out of precausion turning relay off...");
+			ESP_LOGW(TAG, "relay_task: out of precausion turning relay off...");
 			gpio_set_level(GPIO_NUM_0, 1); //Set GPIO0 as high - level output.
 			goto sleep;
 		}
+		UBaseType_t hwm = uxTaskGetStackHighWaterMark(NULL);
+		if (hwm <= HIGH_WATER_MARK_CRITICAL)
+			ESP_LOGE(TAG, "remote_logging_task: uxTaskGetStackHighWaterMark %lu", hwm);
+		else if (hwm <= HIGH_WATER_MARK_WARNING)
+			ESP_LOGW(TAG, "remote_logging_task: uxTaskGetStackHighWaterMark %lu", hwm);
 
 	sleep:
 		xLastWakeTime = xTaskGetTickCount();
-		xPeriod = pdMS_TO_TICKS(relay_task_interval);
-		vTaskDelayUntil(&xLastWakeTime, xPeriod);
+		vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(relay_task_interval));
 	}
 }
 
 static void fw_update_task(void *arg) {
-	int s, r;
+	int http_status, s, r;
+	esp_err_t e;
+	uint16_t rand;
 	char buf[1460];
-	int http_status;
 	char * body;
 	const esp_partition_t * upgrade_partition;
 	esp_ota_handle_t ota_handle = NULL;
-	esp_err_t e;
+	const struct addrinfo hints = {
+		.ai_family = AF_INET,
+		.ai_socktype = SOCK_STREAM,
+		.ai_protocol = IPPROTO_TCP,
+	};
+	struct addrinfo * res;
 
 	while (1) {
-		ESP_LOGI(TAG, "fw_update_task: checking for new timer image %s...", FW_PATH);
-		s = request("application/octet-stream", FW_PATH);
-		
+		ESP_LOGI(TAG, "fw_update_task: checking for a new timer image %s...", FW_PATH);
+		s = -1;
+		res = NULL;
+		rand = esp_random(); //return uint32_t from 0..UINT32_MAX range
+		//normalizing rand to be within 0..1000 range
+		rand /= (UINT32_MAX - rand);
+		rand = rand * 1000 / (1 + rand);
+
+		int err = getaddrinfo(WEB_SERVER, WEB_SERVER_PORT, &hints, &res);
+		if (err != 0) {
+			ESP_LOGE(TAG, "nslookup_task: DNS lookup failed - %d", err);
+			ESP_LOGW(TAG, "nslookup_task: out of precausion turning relay off...");
+			gpio_set_level(GPIO_NUM_0, 1); //Set GPIO0 as high - level output.
+			vTaskDelay(pdMS_TO_TICKS(rand));
+			continue;
+		}
+
+		s = socket(res->ai_family, res->ai_socktype, 0);
+		if (s < 0) {
+			ESP_LOGE(TAG, "fw_update_task: socket failed - %s", strerror(errno));
+			goto sleep;
+		}
+		//ESP_LOGI(TAG, "request: allocated socket");
+
+		if (connect(s, res->ai_addr, res->ai_addrlen) != 0) {
+			ESP_LOGE(TAG, "fw_update_task: connect failed - %s", strerror(errno));
+			goto sleep;
+		}
+		//ESP_LOGI(TAG, "request: connected");
+
+		struct timeval receiving_timeout;
+		receiving_timeout.tv_sec = HTTP_TIMEOUT;
+		receiving_timeout.tv_usec = 0;
+		if (setsockopt(s, SOL_SOCKET, SO_RCVTIMEO, &receiving_timeout, sizeof(receiving_timeout)) < 0) {
+			ESP_LOGE(TAG, "fw_update_task: failed to set socket receiving timeout");
+			goto sleep;
+		}
+		//ESP_LOGI(TAG, "request: set socket receiving timeout success");
+
+		char buff[1024];
+		int l = sprintf(buff, "%s %s %s\r\nHost: %s:%s\r\nConnection: close\r\nUser-Agent: %s\r\nAccept: %s\r\n\r\n", HTTP_METHOD, FW_PATH, HTTP_VERSION, WEB_SERVER, WEB_SERVER_PORT, USER_AGENT, "application/octet-stream");
+		//ESP_LOGI(TAG, "request: sending GET request:\n%s", buff);
+		if (write(s, buff, l) < 0) {
+			ESP_LOGE(TAG, "fw_update_task: write failed - %s", strerror(errno));
+			goto sleep;
+		}
+		//ESP_LOGI(TAG, "request: socket send success");
+
 		memset(buf, 0, sizeof(buf));
 		r = read(s, buf, sizeof(buf));
 
@@ -830,7 +931,7 @@ static void fw_update_task(void *arg) {
 				goto sleep;
 			}
 		} while (r > 0);
-		ESP_LOGI(TAG, "fw_update_task: done reading from socket. Last read return=%d errno=%d\n", r, errno);		
+		//ESP_LOGI(TAG, "fw_update_task: done reading from socket. Last read return=%d errno=%d\n", r, errno);		
 		
 		e = esp_ota_end(ota_handle);
 		if (e != ESP_OK) {
@@ -846,37 +947,54 @@ static void fw_update_task(void *arg) {
 		esp_restart();
 
 	sleep:
-		close(s);
-		TickType_t xLastWakeTime = xTaskGetTickCount();
-		const TickType_t xPeriod = pdMS_TO_TICKS(FW_CHECK_INTERVAL);
-		vTaskDelayUntil(&xLastWakeTime, xPeriod);
+		if (res) freeaddrinfo(res);
+		if (s >= 0) {
+			shutdown(s, SHUT_RDWR);
+			close(s);
+		}
+		UBaseType_t hwm = uxTaskGetStackHighWaterMark(NULL);
+		if (hwm <= HIGH_WATER_MARK_CRITICAL)
+			ESP_LOGE(TAG, "remote_logging_task: uxTaskGetStackHighWaterMark %lu", hwm);
+		else if (hwm <= HIGH_WATER_MARK_WARNING)
+			ESP_LOGW(TAG, "remote_logging_task: uxTaskGetStackHighWaterMark %lu", hwm);
+
+		vTaskDelay(pdMS_TO_TICKS(FW_CHECK_INTERVAL));
 	}
 }
 
 static void esp_config_task(void *arg)
 {
-	TickType_t xLastWakeTime;
-	TickType_t xPeriod;
+	esp_err_t err;
+	uint32_t notificationValue;
 
 	while (1) {
-		EventBits_t uxBits = xEventGroupWaitBits(wifi_event_group, CONNECTED_BIT, false, true, portMAX_DELAY);
-		if (uxBits & CONNECTED_BIT) {
-			ESP_LOGI(TAG, "station got IP");
+		notificationValue = ulTaskNotifyTake(1, pdMS_TO_TICKS(ESP_CONFIG_TASK_WAIT_NOTIFY_MS));
+		if (notificationValue) {
 			sysinfo();
-			ESP_LOGI(TAG, "setting hostname %s...", HOSTNAME);
-			ESP_ERROR_CHECK(tcpip_adapter_set_hostname(WIFI_IF_STA, HOSTNAME));
+			ESP_LOGI(TAG, "esp_config_task: setting hostname %s...", HOSTNAME);
+			err = tcpip_adapter_set_hostname(WIFI_IF_STA, HOSTNAME);
+			if (err != ESP_OK)
+				ESP_LOGE(TAG, "esp_config_task: tcpip_adapter_set_hostname failed - %s", esp_err_to_name(err));
 
 			if (USE_STATIC_IP) {
-				ESP_LOGI(TAG, "stopping dhcp client...");
-				ESP_ERROR_CHECK(tcpip_adapter_dhcpc_stop(WIFI_IF_STA));
-
+				tcpip_adapter_dhcp_status_t status;
+				tcpip_adapter_dhcps_get_status(TCPIP_ADAPTER_IF_STA, &status);
+				//ESP_LOGI(TAG, "esp_config_task: tcpip_adapter_dhcps_get_status %u", status);
+				if (status != TCPIP_ADAPTER_DHCP_STOPPED) { //tcpip_adapter_dhcps_get_status does not return TCPIP_ADAPTER_DHCP_STARTED but TCPIP_ADAPTER_DHCP_INIT
+					ESP_LOGI(TAG, "esp_config_task: USE_STATIC_IP is true, stopping dhcp client...");
+					err = tcpip_adapter_dhcpc_stop(WIFI_IF_STA);
+					if (err != ESP_OK)
+						ESP_LOGE(TAG, "esp_config_task: tcpip_adapter_dhcpc_stop failed - %s", esp_err_to_name(err));
+				}
 				tcpip_adapter_ip_info_t ip;
 				ipaddr_aton(STATIC_IP, &ip.ip);
 				ipaddr_aton(GATEWAY_IP, &ip.gw);
 				ipaddr_aton(NETMASK, &ip.netmask);
 
-				ESP_LOGI(TAG, "setting static ip %s...", ipaddr_ntoa(&ip.ip));
-				ESP_ERROR_CHECK(tcpip_adapter_set_ip_info(WIFI_IF_STA, &ip));
+				ESP_LOGI(TAG, "esp_config_task: setting static ip %s...", ipaddr_ntoa(&ip.ip));
+				err = tcpip_adapter_set_ip_info(WIFI_IF_STA, &ip);
+				if (err != ESP_OK)
+					ESP_LOGE(TAG, "esp_config_task: tcpip_adapter_set_ip_info failed - %s", esp_err_to_name(err));
 			}
 
 			tcpip_adapter_dns_info_t prim_dns_ip;
@@ -884,23 +1002,31 @@ static void esp_config_task(void *arg)
 
 			ipaddr_aton(DNS1, &prim_dns_ip.ip);
 			ipaddr_aton(DNS2, &sec_dns_ip.ip);
-			ESP_LOGI(TAG, "setting primary dns %s...", DNS1);
-			ESP_ERROR_CHECK(tcpip_adapter_set_dns_info(WIFI_IF_STA, TCPIP_ADAPTER_DNS_MAIN, &prim_dns_ip));
-			ESP_LOGI(TAG, "setting secondary dns %s...", DNS2);
-			ESP_ERROR_CHECK(tcpip_adapter_set_dns_info(WIFI_IF_STA, TCPIP_ADAPTER_DNS_BACKUP, &sec_dns_ip));
-			tcpip_adapter_get_dns_info(WIFI_IF_STA, TCPIP_ADAPTER_DNS_MAIN, &prim_dns_ip);
-			tcpip_adapter_get_dns_info(WIFI_IF_STA, TCPIP_ADAPTER_DNS_BACKUP, &sec_dns_ip);
+			ESP_LOGI(TAG, "esp_config_task: setting primary dns %s...", DNS1);
+			err = tcpip_adapter_set_dns_info(WIFI_IF_STA, TCPIP_ADAPTER_DNS_MAIN, &prim_dns_ip);
+			if (err != ESP_OK)
+				ESP_LOGE(TAG, "esp_config_task: tcpip_adapter_set_dns_info failed - %s", esp_err_to_name(err));
+			ESP_LOGI(TAG, "esp_config_task: setting secondary dns %s...", DNS2);
+			err = tcpip_adapter_set_dns_info(WIFI_IF_STA, TCPIP_ADAPTER_DNS_BACKUP, &sec_dns_ip);
+			if (err != ESP_OK)
+				ESP_LOGE(TAG, "esp_config_task: tcpip_adapter_set_dns_info failed - %s", esp_err_to_name(err));
+			err = tcpip_adapter_get_dns_info(WIFI_IF_STA, TCPIP_ADAPTER_DNS_MAIN, &prim_dns_ip);
+			if (err != ESP_OK)
+				ESP_LOGE(TAG, "esp_config_task: tcpip_adapter_get_dns_info failed - %s", esp_err_to_name(err));
+			err = tcpip_adapter_get_dns_info(WIFI_IF_STA, TCPIP_ADAPTER_DNS_BACKUP, &sec_dns_ip);
+			if (err != ESP_OK)
+				ESP_LOGE(TAG, "esp_config_task: tcpip_adapter_get_dns_info failed - %s", esp_err_to_name(err));
 			ESP_LOGI(TAG, "dns 1: %s", ipaddr_ntoa(&prim_dns_ip.ip));
 			ESP_LOGI(TAG, "dns 2: %s", ipaddr_ntoa(&sec_dns_ip.ip));
 
-			ESP_LOGI(TAG, "Initializing SNTP...");
+			ESP_LOGI(TAG, "esp_config_task: initializing SNTP...");
 			sntp_setoperatingmode(SNTP_OPMODE_POLL);
 			sntp_setservername(0, NTP0);
 			sntp_setservername(1, NTP1);
 			sntp_setservername(2, NTP2);
 			sntp_init();
 
-			ESP_LOGI(TAG, "setting timezone %s...", tz);
+			ESP_LOGI(TAG, "esp_config_task: setting timezone %s...", tz);
 			setenv("TZ", tz, 1);
 			tzset();
 
@@ -913,25 +1039,21 @@ static void esp_config_task(void *arg)
 			parse_body(par);
 
 			if (HTTP_UPDATE)
-				if (pdPASS != xTaskCreate(&http_update_task, "http_update_task", 8192, NULL, HTTP_UPDATE_TASK_PRIORITY, NULL))
+				if (pdPASS != xTaskCreate(&http_update_task, "http_update_task", HTTP_UPDATE_TASK_SS, NULL, HTTP_UPDATE_TASK_PRIORITY, NULL))
 					ESP_LOGE(TAG, "failed to create http update task");
-			if (pdPASS != xTaskCreate(&relay_task, "relay_task", 8192, NULL, RELAY_TASK_PRIORITY, NULL))
+			if (pdPASS != xTaskCreate(&relay_task, "relay_task", RELAY_TASK_SS, NULL, RELAY_TASK_PRIORITY, NULL))
 				ESP_LOGE(TAG, "failed to create relay task");
 			if (HTTP_FW_UPDATE)
-				if (pdPASS != xTaskCreate(&fw_update_task, "fw_update_task", 8192, NULL, FW_UPDATE_TASK_PRIORITY, NULL))
+				if (pdPASS != xTaskCreate(&fw_update_task, "fw_update_task", FW_UPDATE_TASK_SS, NULL, FW_UPDATE_TASK_PRIORITY, NULL))
 					ESP_LOGE(TAG, "failed to create fw update task");
 
 			ESP_ERROR_CHECK(gpio_set_direction(GPIO_NUM_0, GPIO_MODE_OUTPUT));
-
-			vTaskDelete(NULL);
-			break;
 		}
-		else {
-			ESP_LOGE(TAG, "Timeout connecting to WiFi... Will retry in %u sec", WAIT_FOR_WIFI_RETRY_MS);
-			xLastWakeTime = xTaskGetTickCount();
-			xPeriod = pdMS_TO_TICKS(WAIT_FOR_WIFI_RETRY_MS);
-			vTaskDelayUntil(&xLastWakeTime, xPeriod);
-		}
+		UBaseType_t hwm = uxTaskGetStackHighWaterMark(NULL);
+		if (hwm <= HIGH_WATER_MARK_CRITICAL)
+			ESP_LOGE(TAG, "remote_logging_task: uxTaskGetStackHighWaterMark %lu", hwm);
+		else if (hwm <= HIGH_WATER_MARK_WARNING)
+			ESP_LOGW(TAG, "remote_logging_task: uxTaskGetStackHighWaterMark %lu", hwm);
 	}
 }
 
@@ -939,58 +1061,107 @@ static esp_err_t event_handler(void *ctx, system_event_t *evt)
 {
 	//ESP_LOGI(TAG,"event %x", evt->event_id);
 	char * reason = "";
-	char * mode = "";
-	wifi_scan_config_t config;
+	esp_err_t err;
+	wifi_ap_record_t ap_records[MAX_AP_RECORDS];
+	uint16_t ap_record_number = MAX_AP_RECORDS, ap_number, i;
+
 	switch (evt->event_id) {
-	case SYSTEM_EVENT_WIFI_READY:
-		ESP_LOGI(TAG, "wifi is ready");
+	case SYSTEM_EVENT_WIFI_READY: //should be triggered after esp-wifi_init() but it is not!
+		ESP_LOGI(TAG, "event_handler: wifi is ready");
 		break;
 	case SYSTEM_EVENT_SCAN_DONE:
-		ESP_LOGI(TAG, "ap scan done, status %u", evt->event_info.scan_done.status);
-		ESP_LOGI(TAG, "connecting to ap...");
-		ESP_ERROR_CHECK(esp_wifi_connect());
+		err = esp_wifi_scan_get_ap_num(&ap_number);
+		if (err != ESP_OK)
+			ESP_LOGE(TAG, "event_handler: esp_wifi_scan_get_ap_num failed - %s", esp_err_to_name(err));
+		//ESP_LOGI(TAG, "ap scan done, status %u, number of APs %u", evt->event_info.scan_done.status, ap_number);
+		//esp_wifi_scan_get_ap_records call is needed to free memory allocated by esp_wifi_scan_start
+		err = esp_wifi_scan_get_ap_records(&ap_record_number, ap_records);
+		if (err != ESP_OK)
+			ESP_LOGE(TAG, "event_handler: esp_wifi_scan_get_ap_records failed - %s", esp_err_to_name(err));
+		ESP_LOGI(TAG, "Found %u APs:", ap_record_number);
+		for (i = 0; i < ap_record_number; i++) {
+			if (i >= MAX_AP_RECORDS) {
+				ESP_LOGE(TAG, "number of found APs %u exceeds the maximum %u", ap_record_number, MAX_AP_RECORDS);
+				break;
+			}
+			ap_records[i].ssid[32] = '\0';
+			ESP_LOGI(TAG, "%s (%x:%x:%x:%x:%x:%x) %udBm?, %s, 11b: %u, 11g: %u, 11n: %u, low_rate: %u", ap_records[i].ssid, ap_records[i].bssid[0], ap_records[i].bssid[1], ap_records[i].bssid[2], ap_records[i].bssid[3], ap_records[i].bssid[4], ap_records[i].bssid[5],
+				ap_records[i].rssi, authmode(ap_records[i].authmode), ap_records[i].phy_11b, ap_records[i].phy_11g, ap_records[i].phy_11n, ap_records[i].phy_lr);
+		}
 		break;
 	case SYSTEM_EVENT_STA_START:
-		ESP_LOGI(TAG, "wifi started");
-		esp_wifi_connect();
-		break;
-	case SYSTEM_EVENT_STA_STOP:
-		ESP_LOGI(TAG, "wifi stopped");
-		ESP_LOGI(TAG, "event_handler: out of precausion turning relay off...");
-		gpio_set_level(GPIO_NUM_0, 1); //Set GPIO0 as high - level output.
-		break;
-	case SYSTEM_EVENT_STA_CONNECTED:
-		switch (evt->event_info.connected.authmode) {
-		case WIFI_AUTH_OPEN:
-			mode = "open";
+		//ESP_LOGI(TAG, "wifi station started");
+		err = esp_wifi_set_max_tx_power(WIFI_POWER); //should be called after esp_wifi_start()
+		if (err != ESP_OK)
+			ESP_LOGE(TAG, "event_handler: esp_wifi_set_max_tx_power failed - %s", esp_err_to_name(err));
+
+		uint8_t wifi_mode = WIFI_MODE;
+		err = esp_wifi_set_protocol(ESP_IF_WIFI_STA, wifi_mode);
+		if (err != ESP_OK)
+			ESP_LOGE(TAG, "event_handler: esp_wifi_set_protocol failed - %s", esp_err_to_name(err));
+		switch (wifi_mode) {
+		case WIFI_PROTOCOL_11B:
+			ESP_LOGI(TAG, "wifi mode %u means 802.11b (<11Mbps, 35-140m)", WIFI_MODE);
 			break;
-		case WIFI_AUTH_WEP:
-			mode = "wep";
+		case WIFI_PROTOCOL_11G:
+			ESP_LOGI(TAG, "wifi mode %u means 802.11g (<54Mbps, 38-140m)", WIFI_MODE);
 			break;
-		case WIFI_AUTH_WPA_PSK:
-			mode = "wpa_psk";
+		case WIFI_PROTOCOL_11N:
+			ESP_LOGI(TAG, "wifi mode %u means 802.11n (<289/600Mbps, 70-250m)", WIFI_MODE);
 			break;
-		case WIFI_AUTH_WPA2_PSK:
-			mode = "wpa2_psk";
+		case WIFI_PROTOCOL_11B | WIFI_PROTOCOL_11G:
+			ESP_LOGI(TAG, "wifi mode %u means 802.11bg (<54Mbps, 35-140m)", WIFI_MODE);
 			break;
-		case WIFI_AUTH_WPA_WPA2_PSK:
-			mode = "wpa_wpa2_psk";
-			break;
-		case WIFI_AUTH_WPA2_ENTERPRISE:
-			mode = "wpa2_enterprise";
-			break;
-		case WIFI_AUTH_MAX:
-			mode = "max";
+		case WIFI_PROTOCOL_11B | WIFI_PROTOCOL_11G | WIFI_PROTOCOL_11N:
+			ESP_LOGI(TAG, "wifi mode %u means 802.11bgn (<289/600Mbps, 35-250m)", WIFI_MODE);
 			break;
 		default:
-			mode = "unknown";
+			ESP_LOGI(TAG, "wifi mode is unknown %u", wifi_mode);
 		}
-		ESP_LOGI(TAG, "connected to ssid %s, channel %d, authmode %s",
+
+		//err = esp_wifi_scan_stop();
+		//err = esp_wifi_scan_start(&config, false); //scan is done as part of esp_wifi_connect()
+
+		wifi_config_t wifi_config = {
+			.sta = {
+				.ssid = SSID,
+				.password = PASSPHRASE,
+				.bssid_set = 0,
+#ifdef SSID_CHANNEL
+				.scan_method = WIFI_FAST_SCAN,
+				.channel = SSID_CHANNEL
+#else
+				.scan_method = WIFI_ALL_CHANNEL_SCAN,
+				.channel = 0
+#endif // SSID_CHANNEL
+			},
+		};
+		//ESP_LOGI(TAG, "Configuring esp for scan method %u, channel %u...", wifi_config.sta.scan_method, wifi_config.sta.channel);
+		err = esp_wifi_set_config(ESP_IF_WIFI_STA, &wifi_config);
+		if (err != ESP_OK)
+			ESP_LOGE(TAG, "event_handler: esp_wifi_set_config failed - %s", esp_err_to_name(err));
+		//ESP_LOGI(TAG, "connecting to ap %s...", SSID);
+		err = esp_wifi_connect();
+		if (err != ESP_OK)
+			ESP_LOGE(TAG, "event_handler: esp_wifi_connect failed - %s", esp_err_to_name(err));
+		break;
+	case SYSTEM_EVENT_STA_STOP:
+		ESP_LOGW(TAG, "event_handler: wifi stopped, restarting...");
+		esp_restart();
+		break;
+	case SYSTEM_EVENT_STA_CONNECTED:
+		ESP_LOGI(TAG, "event_handler: connected to ssid %s, channel %d, authmode %s",
 			evt->event_info.connected.ssid,
-			evt->event_info.connected.channel, mode);
+			evt->event_info.connected.channel, authmode(evt->event_info.connected.authmode));
+		if (USE_STATIC_IP) {
+			if (esp_config_task_handle) {
+				//ESP_LOGI(TAG, "event_handler: notifying esp_config_task...");
+				xTaskNotifyGive(esp_config_task_handle);
+			}
+			else ESP_LOGE(TAG, "event_handler: esp_config_task_handle is NULL");
+		}
 		break;
 	case SYSTEM_EVENT_STA_DISCONNECTED:
-		xEventGroupClearBits(wifi_event_group, CONNECTED_BIT);
 		switch (evt->event_info.disconnected.reason) {
 		case WIFI_REASON_UNSPECIFIED: reason = "unknown"; break;
 		case WIFI_REASON_AUTH_EXPIRE: reason = "auth expired"; break;
@@ -1021,103 +1192,168 @@ static esp_err_t event_handler(void *ctx, system_event_t *evt)
 		case WIFI_REASON_ASSOC_FAIL: reason = "association failed"; break;
 		case WIFI_REASON_HANDSHAKE_TIMEOUT: reason = "handshake timeout"; break;
 		}
-		ESP_LOGI(TAG, "disconnected from ssid %s, reason %s, re-scanning...",
+		ESP_LOGW(TAG, "event_handler: disconnected from ssid %s, reason %s, re-scanning...",
 			evt->event_info.disconnected.ssid, reason);
-		ESP_LOGI(TAG, "event_handler: out of precausion turning relay off...");
+		ESP_LOGW(TAG, "event_handler: out of precausion turning relay off...");
 		gpio_set_level(GPIO_NUM_0, 1); //Set GPIO0 as high - level output.
-		config.ssid = (uint8_t *)SSID;
-		config.bssid = NULL;
-#ifdef SSID_CHANNEL
-		config.channel = SSID_CHANNEL;
-#endif // SSID_CHANNEL
-		config.show_hidden = 1;
-		config.scan_type = WIFI_SCAN_TYPE_ACTIVE;
-		config.scan_time.active.min = MIN_SCANTIME;
-		config.scan_time.active.max = MAX_SCANTIME;
-		esp_wifi_scan_start(&config, false);
+		//ESP_LOGI(TAG, "connecting to ap %s...", SSID);
+		err = esp_wifi_connect();
+		if (err != ESP_OK)
+			ESP_LOGE(TAG, "event_handler: esp_wifi_connect failed - %s", esp_err_to_name(err));
 		break;
 	case SYSTEM_EVENT_STA_AUTHMODE_CHANGE:
-		ESP_LOGI(TAG, "mode: %d -> %d",
+		ESP_LOGW(TAG, "event_handler: station authmode changed: %d -> %d, restarting...",
 			evt->event_info.auth_change.old_mode,
 			evt->event_info.auth_change.new_mode);
+		esp_restart();
 		break;
 	case SYSTEM_EVENT_STA_GOT_IP:
-		ESP_LOGI(TAG, "got ip:" IPSTR ", mask:" IPSTR ", gw:" IPSTR,
+		ESP_LOGI(TAG, "event_handler: station got ip:" IPSTR ", mask:" IPSTR ", gw:" IPSTR,
 			IP2STR(&evt->event_info.got_ip.ip_info.ip),
 			IP2STR(&evt->event_info.got_ip.ip_info.netmask),
 			IP2STR(&evt->event_info.got_ip.ip_info.gw));
-		xEventGroupSetBits(wifi_event_group, CONNECTED_BIT);
+		if (!USE_STATIC_IP) {
+			if (esp_config_task_handle) {
+				//ESP_LOGI(TAG, "event_handler: notifying esp_config_task...");
+				xTaskNotifyGive(esp_config_task_handle);
+			}
+			else ESP_LOGE(TAG, "event_handler: esp_config_task_handle is NULL");
+		}		
 		break;
 	case SYSTEM_EVENT_STA_LOST_IP:
-		ESP_LOGE(TAG, "lost ip");
-		xEventGroupClearBits(wifi_event_group, CONNECTED_BIT);
-		ESP_LOGI(TAG, "event_handler: out of precausion turning relay off...");
-		gpio_set_level(GPIO_NUM_0, 1); //Set GPIO0 as high - level output.
+		ESP_LOGE(TAG, "event_handler: station lost ip, restarting...");
+		esp_restart();
 		break;
 	default:
-		ESP_LOGI(TAG, "unknown event with id %x", evt->event_id);
+		ESP_LOGI(TAG, "event_handler: unknown event with id %x", evt->event_id);
 		break;
 	}
 	return ESP_OK;
 }
 
+static void sendlog() {
+	int	err;
+	sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+	if (sock >= 0) {
+		err = sendto(sock, log_buffer, log_buffer_pointer, 0, (struct sockaddr *)&remote_addr, sizeof(remote_addr));
+		if (err < 0) {
+			printf("sendlog: sendto failed - %s\n", strerror(errno));
+		}
+		else {
+			memset(log_buffer, 0, MAX_LOG_BUFFER_SIZE);
+			log_buffer_pointer = 0;
+		}
+		close(sock);
+	}
+	else printf("sendlog: socket failed - %s, remote logging will not work\n", strerror(errno));
+}
+
+static void remote_logging_task(void *arg) {
+	uint32_t notificationValue;
+
+	remote_addr.sin_family = AF_INET;
+	remote_addr.sin_addr.s_addr = inet_addr(REMOTE_LOGGING_IP);
+	remote_addr.sin_port = htons(REMOTE_LOGGING_UDP_PORT);
+
+	while (1) {
+		notificationValue = ulTaskNotifyTake(1, pdMS_TO_TICKS(CHAR_TIMEOUT));
+		if (notificationValue)
+			sendlog();
+		else if (log_buffer_pointer > 0)
+			sendlog();
+		UBaseType_t hwm = uxTaskGetStackHighWaterMark(NULL);
+		if (hwm <= HIGH_WATER_MARK_CRITICAL)
+			ESP_LOGE(TAG, "remote_logging_task: uxTaskGetStackHighWaterMark %lu", hwm);
+		else if (hwm <= HIGH_WATER_MARK_WARNING)
+			ESP_LOGW(TAG, "remote_logging_task: uxTaskGetStackHighWaterMark %lu", hwm);
+	}
+}
+
+static int remote_logging(int ch) {
+	if (log_buffer_pointer == MAX_LOG_BUFFER_SIZE) {
+		if (logging_task_handle)
+			xTaskNotifyGive(logging_task_handle);
+		else printf("remote_logging: logging_task_handle is NULL\n");
+		putchar(ch);
+	}
+	else {
+		log_buffer[log_buffer_pointer++] = ch;
+		if (log_buffer_pointer == MAX_LOG_BUFFER_SIZE) {
+			if (logging_task_handle)
+				xTaskNotifyGive(logging_task_handle);
+			else printf("remote_logging: logging_task_handle is NULL\n");
+		}
+	}
+	return ch;
+}
+
 void app_main(void) {
-	// Initialize NVS.
-	esp_err_t err = nvs_flash_init();
+	esp_err_t err;
+	if (REMOTE_LOGGING) {
+		memset(log_buffer, 0, MAX_LOG_BUFFER_SIZE);
+		log_buffer_pointer = 0;
+		esp_log_set_putchar(remote_logging);
+		if (pdPASS != xTaskCreate(&remote_logging_task, "logging_task", REMOTE_LOGGING_TASK_SS, NULL, LOGGING_TASK_PRIORITY, &logging_task_handle))
+			printf("app_main: failed to create logging task\n");
+	}
+
+	err = nvs_flash_init();
 	if (err == ESP_ERR_NVS_NO_FREE_PAGES) {
 		// OTA app partition table has a smaller NVS partition size than the non-OTA
 		// partition table. This size mismatch may cause NVS initialization to fail.
 		// If this happens, we erase NVS partition and initialize NVS again.
-		ESP_ERROR_CHECK(nvs_flash_erase());
-		err = nvs_flash_init();
-	}
-	ESP_ERROR_CHECK(err);
-
-	tcpip_adapter_init();
-	wifi_event_group = xEventGroupCreate();
-	ESP_ERROR_CHECK(esp_event_loop_init(event_handler, NULL));
-	wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
-	ESP_ERROR_CHECK(esp_wifi_init(&cfg));
-	ESP_ERROR_CHECK(esp_wifi_set_storage(WIFI_STORAGE_RAM));
-
-	uint8_t wifi_mode = WIFI_MODE;
-	if (esp_wifi_set_protocol(ESP_IF_WIFI_STA, wifi_mode)) {
-		switch (wifi_mode) {
-		case WIFI_PROTOCOL_11B:
-			ESP_LOGI(TAG, "wifi set 802.11b (<11Mbps, 35-140m) mode ok");
-			break;
-		case WIFI_PROTOCOL_11G:
-			ESP_LOGI(TAG, "wifi set 802.11g (<54Mbps, 38-140m) mode ok");
-			break;
-		case WIFI_PROTOCOL_11N:
-			ESP_LOGI(TAG, "wifi set 802.11n (<289/600Mbps, 70-250m) mode ok");
-			break;
-		default:
-			ESP_LOGI(TAG, "wifi mode is unknown %u", wifi_mode);
+		err = nvs_flash_erase();
+		if (err != ESP_OK)
+			ESP_LOGE(TAG, "app_main: nvs_flash_erase failed - %s", esp_err_to_name(err));
+		else {
+			err = nvs_flash_init();
+			if (err != ESP_OK)
+				ESP_LOGE(TAG, "app_main: nvs_flash_init2 failed - %s", esp_err_to_name(err));
 		}
-	}
-	else ESP_LOGI(TAG, "esp_wifi_set_protocol %d failed (1: b, 2: g, 4: n)", wifi_mode);
-	wifi_config_t wifi_config = {
-		.sta = {
-			.ssid = SSID,
-			.password = PASSPHRASE,
-			.bssid_set = 0,
-#ifdef SSID_CHANNEL
-			.scan_method = WIFI_FAST_SCAN,
-			.channel = SSID_CHANNEL
-#else
-			.scan_method = WIFI_ALL_CHANNEL_SCAN,
-			.channel = 0
-#endif // SSID_CHANNEL
-		},
-	};
-	ESP_LOGI(TAG, "Setting esp to station mode...");
-	ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
-	ESP_LOGI(TAG, "Configuring esp for scan method %u, channel %u...", wifi_config.sta.scan_method, wifi_config.sta.channel);
-	ESP_ERROR_CHECK(esp_wifi_set_config(ESP_IF_WIFI_STA, &wifi_config));
-	ESP_LOGI(TAG, "Connecting to ssid %s...", wifi_config.sta.ssid);
-	ESP_ERROR_CHECK(esp_wifi_start());
-	ESP_ERROR_CHECK(esp_wifi_set_max_tx_power(WIFI_POWER));
+	} 
+	else if (err != ESP_OK)
+		ESP_LOGE(TAG, "app_main: nvs_flash_init1 failed - %s", esp_err_to_name(err));
 
-	xTaskCreate(&esp_config_task, "esp_config_task", 8192, NULL, 5, NULL);
+	tcpip_adapter_init(); //enables tcpip stack, see tcpip_adapter.h
+	
+	err = esp_event_loop_init(event_handler, NULL); //see esp_event_loop.h
+	if (err != ESP_OK) 
+		ESP_LOGE(TAG, "app_main: esp_event_loop_init failed - %s", esp_err_to_name(err));
+
+	//ESP_LOGI(TAG, "Calling esp_wifi_init()...");
+	wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
+	err = esp_wifi_init(&cfg); //init event queue according to esp_wifi.h
+	if (err != ESP_OK)
+		ESP_LOGE(TAG, "app_main: esp_wifi_init failed - %s", esp_err_to_name(err));
+
+	//ESP_LOGI(TAG, "setting wifi config storage to RAM...");
+	//err = esp_wifi_set_storage(WIFI_STORAGE_RAM); // WIFI_STORAGE_FLASH - default
+	//if (err != ESP_OK)
+	//	ESP_LOGE(TAG, "app_main: esp_wifi_set_storage failed - %s", esp_err_to_name(err));
+	//ESP_LOGI(TAG, "setting esp to station mode...");
+	err = esp_wifi_set_mode(WIFI_MODE_STA);
+	if (err != ESP_OK)
+		ESP_LOGE(TAG, "app_main: esp_wifi_set_mode failed - %s", esp_err_to_name(err));
+	//err = esp_wifi_set_bandwidth(ESP_IF_WIFI_STA, WIFI_BW_HT20); //WIFI_BW_HT40 for 802.11n
+	//err = esp_wifi_set_auto_connect(false); // default is true - deprecated!
+
+	if (pdPASS != xTaskCreate(&esp_config_task, "esp_config_task", ESP_CONFIG_TASK_SS, NULL, 5, &esp_config_task_handle))
+		ESP_LOGE(TAG, "app_main: failed to create esp config task");
+
+	err = esp_wifi_start();
+	if (err != ESP_OK)
+		ESP_LOGE(TAG, "app_main: esp_wifi_start failed - %s", esp_err_to_name(err));
+
+	/* TO DO - create a task to monitor wifi state
+	wifi_state_t state = esp_wifi_get_state();
+	switch (state) {
+	case WIFI_STATE_DEINIT:
+		break;
+	case WIFI_STATE_INIT:
+		break;
+	case WIFI_STATE_START:
+		break;
+	default:
+	}
+	*/
 }
