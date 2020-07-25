@@ -155,6 +155,27 @@ WantedBy=multi-user.target
 systemctl daemon-reload
 systemctl enable timer-logging
 systemctl start timer-logging
+systemctl status timer-logging
+tail -f /var/log/timer.log
+```
+Configure logrotate
+
+```
+vi /etc/logrotate.d/timer
+/var/log/timer.log
+{
+        rotate 7
+        daily
+        maxsize 1000000
+        missingok
+        notifempty
+        compress
+        delaycompress
+        sharedscripts
+        postrotate
+                systemctl restart timer
+        endscript
+}
 ```
 
 Or set REMOTE_LOGGING to false and rebuild
