@@ -135,6 +135,8 @@ vi /usr/bin/timer-logging.sh
 #!/bin/bash
 nc -ulkn 0.0.0.0 6666 >> /var/log/timer.log
 
+chmod 755 /usr/bin/timer-logging.sh
+
 vi /lib/systemd/system/timer-logging.service
 [Unit]
 Description=Timer Service
