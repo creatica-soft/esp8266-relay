@@ -164,6 +164,7 @@ Configure logrotate
 vi /etc/logrotate.d/timer
 /var/log/timer.log
 {
+        su root root
         rotate 7
         daily
         maxsize 1000000
@@ -176,6 +177,12 @@ vi /etc/logrotate.d/timer
                 systemctl restart timer
         endscript
 }
+```
+
+Test it with
+
+```
+logrotate -f /etc/logrotate.d/timer
 ```
 
 Or set REMOTE_LOGGING to false and rebuild
