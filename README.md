@@ -102,9 +102,9 @@ Install toolchain for crosscompiling (may not be easy for arm, old esp-open-sdk 
 ```
 export PATH=~/esp-open-sdk/xtensa-lx106-elf/bin:$PATH
 cd ~
-wget https://github.com/espressif/ESP8266_RTOS_SDK/archive/v3.1.2.tar.gz
-tar -zxf ESP8266_RTOS_SDK-v3.1.2.tar.gz
-mkdir -p ESP8266_RTOS_SDK-3.1.2/timer/main
+wget https://github.com/espressif/ESP8266_RTOS_SDK/releases/download/v3.3/ESP8266_RTOS_SDK-v3.3.zip
+unzip ESP8266_RTOS_SDK-v3.3.zip
+mkdir -p ESP8266_RTOS_SDK/timer/main
 ```
 
 RTOS SDK Manual at https://docs.espressif.com/projects/esp8266-rtos-sdk/en/latest/get-started/index.html
@@ -112,10 +112,10 @@ RTOS SDK Manual at https://docs.espressif.com/projects/esp8266-rtos-sdk/en/lates
 Review and update defines in timer.c
 
 ```
-cp timer.c ESP8266_RTOS_SDK-3.1.2/timer/main
-cp ESP8266_RTOS_SDK-3.1.2/examples/get-started/project-template/Makefile ESP8266_RTOS_SDK-3.1.2/timer
-touch ESP8266_RTOS_SDK-3.1.2/timer/main/component.mk
-export IDF_PATH=~/ESP8266_RTOS_SDK-3.1.2
+cp timer.c ESP8266_RTOS_SDK/timer/main
+cp ESP8266_RTOS_SDK/examples/get-started/project-template/Makefile ESP8266_RTOS_SDK/timer
+touch ESP8266_RTOS_SDK/timer/main/component.mk
+export IDF_PATH=~/ESP8266_RTOS_SDK
 make menuconfig # to produce sdkconfig
 make
 ```
@@ -128,7 +128,7 @@ make flash
 
 Power off, unground GPIO0 for normal operation, power on
 
-Run terminal emulator to see the ESP_LOGI(TAG,) messages:
+Run terminal emulator to see the ESP_LOGx(TAG,) messages:
 
 ```
 miniterm --raw /dev/ttyAMA1 74880
