@@ -128,7 +128,7 @@ make flash
 
 Power off, unground GPIO0 for normal operation, power on
 
-On REMOTE_LOGGING_IP:REMOTE_LOGGING_UDP_PORT run to see ESP_LOGx(TAG, ...) messages.
+To see ESP_LOGx(TAG, ...) messages, on REMOTE_LOGGING_IP:REMOTE_LOGGING_UDP_PORT run 
 
 ```
 nc -ulkn 0.0.0.0 6666
