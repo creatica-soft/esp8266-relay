@@ -128,10 +128,31 @@ make flash
 
 Power off, unground GPIO0 for normal operation, power on
 
-To see ESP_LOGx(TAG, ...) messages, on REMOTE_LOGGING_IP:REMOTE_LOGGING_UDP_PORT run 
+On a logging server REMOTE_LOGGING_IP:REMOTE_LOGGING_UDP_PORT create a service
 
 ```
-nc -ulkn 0.0.0.0 6666
+vi /usr/bin/timer-logging.sh
+#!/bin/bash
+nc -ulkn 0.0.0.0 6666 >> /var/log/timer.log
+
+vi /lib/systemd/system/timer-logging.service
+[Unit]
+Description=Timer Service
+Wants=network.target
+After=network.target nss-lookup.target
+
+[Service]
+#Type=forking
+ExecStart=/usr/bin/timer-logging.sh
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
+
+
+systemctl daemon-reload
+systemctl enable timer-logging
+systemctl start timer-logging
 ```
 
 Or set REMOTE_LOGGING to false and rebuild
