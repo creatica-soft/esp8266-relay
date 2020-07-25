@@ -1,6 +1,6 @@
 esp8266-timer-relay is based on $2USD ESP-01s chip with relay from Aliexpress - https://www.aliexpress.com/item/32843645421.html
 
-## simple sntp time-based relay with OTA firmware update for RTOS flavor
+## simple sntp time-based relay with OTA firmware update and remote logging for RTOS flavor
 
 user_main.c is an example of programming esp8266 wifi chip using ESP8266 Non-OS SDK.
 
@@ -128,7 +128,19 @@ make flash
 
 Power off, unground GPIO0 for normal operation, power on
 
-Run terminal emulator to see the ESP_LOGx(TAG,) messages:
+On REMOTE_LOGGING_IP:REMOTE_LOGGING_UDP_PORT run to see ESP_LOGx(TAG, ...) messages.
+
+```
+nc -ulkn 0.0.0.0 6666
+```
+
+Or set REMOTE_LOGGING to false and rebuild
+
+```
+#define REMOTE_LOGGING false
+```
+
+Then run terminal emulator to see the ESP_LOGx(TAG,) messages:
 
 ```
 miniterm --raw /dev/ttyAMA1 74880
