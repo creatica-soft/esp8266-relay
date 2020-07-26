@@ -241,7 +241,7 @@ static void sysinfo(void) {
 	//ESP_LOGI(TAG, "cpu frequency %u", rtc_clk_cpu_freq_get());
 	//Overclock CPU (default is RTC_CPU_FREQ_80M)
 	//rtc_clk_cpu_freq_set(RTC_CPU_FREQ_160M);
-	esp_chip_info_t chip;
+	/*esp_chip_info_t chip;
 	esp_chip_info(&chip);
 	char * model = "", *flash = "";
 	if (chip.model == CHIP_ESP8266) model = "ESP8266";
@@ -250,7 +250,7 @@ static void sysinfo(void) {
 	ESP_LOGI(TAG, "chip features %u", chip.features);
 	ESP_LOGI(TAG, "chip cores %u", chip.cores);
 	ESP_LOGI(TAG, "chip revision %u", chip.revision);
-
+	
 	flash_size_map flash_size = system_get_flash_size_map();
 	switch (flash_size) {
 	case FLASH_SIZE_4M_MAP_256_256: flash = "4Mbit_256x256"; break;
@@ -265,7 +265,7 @@ static void sysinfo(void) {
 	case FLASH_SIZE_128M_MAP_1024_1024: flash = "128Mbit_1024x1024"; break;
 	case FALSH_SIZE_MAP_MAX: flash = "MAX"; break;
 	}
-	ESP_LOGI(TAG, "system flash size %s", flash);
+	ESP_LOGI(TAG, "system flash size %s", flash);*/
 	ESP_LOGI(TAG, "system IDF version %s", esp_get_idf_version());
 	ESP_LOGI(TAG, "free heap size %u", esp_get_free_heap_size());
 }
@@ -302,12 +302,18 @@ static int cron_parser(char * cronline, bool onTimer) {
 			if (!subfield_min) break;
 			//ESP_LOGI(TAG,"subfield_min %s", subfield_min);
 			if (strncmp(subfield_min, "*", 1) != 0) {
-				if (!isdigit((unsigned char)subfield_min[0])) return 1;
+				if (!isdigit((unsigned char)subfield_min[0])) {
+					ESP_LOGE(TAG, "cron_parser: subfield_min is not a number %s-", subfield_min);
+					return 1;
+				}
 				min = atoi(subfield_min);
 				subfield_max = strtok(NULL, "-");
 				if (subfield_max) {
 					//ESP_LOGI(TAG,"subfield_max %s", subfield_max);
-					if (!isdigit((unsigned char)subfield_max[0])) return 2;
+					if (!isdigit((unsigned char)subfield_max[0])) {
+						ESP_LOGE(TAG, "cron_parser: subfield_max is not a number %s-%s", subfield_min, subfield_max);
+						return 2;
+					}
 					max = atoi(subfield_max);
 				}
 				else max = min;
@@ -315,7 +321,10 @@ static int cron_parser(char * cronline, bool onTimer) {
 			switch (i) {
 			case 0: //seconds
 				if (min == 255) { min = 0; max = 59; }
-				if (min >= 60 || max >= 60) return 3;
+				if (min >= 60 || max >= 60) {
+					ESP_LOGE(TAG, "cron_parser: seconds are from 0 to 59, read %u, %u", min, max);
+					return 3;
+				}
 				//if (onTimer) printf("cron_parser: secondsOn ");
 				//else printf("cron_parser: secondsOff ");
 				for (k = min; k <= max; k++) {
@@ -327,7 +336,10 @@ static int cron_parser(char * cronline, bool onTimer) {
 				break;
 			case 1: //minutes
 				if (min == 255) { min = 0; max = 59; }
-				if (min >= 60 || max >= 60) return 4;
+				if (min >= 60 || max >= 60) {
+					ESP_LOGE(TAG, "cron_parser: minutes are from 0 to 59, read %u, %u", min, max);
+					return 4;
+				}
 				//if (onTimer) printf("cron_parser: minutesOn ");
 				//else printf("cron_parser: minutesOff ");
 				for (k = min; k <= max; k++) {
@@ -339,7 +351,10 @@ static int cron_parser(char * cronline, bool onTimer) {
 				break;
 			case 2: //hours
 				if (min == 255) { min = 0; max = 23; }
-				if (min >= 24 || max >= 24) return 5;
+				if (min >= 24 || max >= 24) {
+					ESP_LOGE(TAG, "cron_parser: hours are from 0 to 23, read %u, %u", min, max);
+					return 5;
+				}
 				//if (onTimer) printf("cron_parser: hoursOn ");
 				//else printf("cron_parser: hoursOff ");
 				for (k = min; k <= max; k++) {
@@ -352,7 +367,10 @@ static int cron_parser(char * cronline, bool onTimer) {
 			case 3: //days
 				if (min == 255) { min = 1; max = 31; }
 				min--; max--;
-				if (min >= 31 || max >= 31) return 6;
+				if (min >= 31 || max >= 31) {
+					ESP_LOGE(TAG, "cron_parser: days are from 1 to 31, read %u, %u", min + 1, max + 1);
+					return 6;
+				}
 				//if (onTimer) printf("cron_parser: daysOn ");
 				//else printf("cron_parser: daysOff ");
 				for (k = min; k <= max; k++) {
@@ -365,7 +383,10 @@ static int cron_parser(char * cronline, bool onTimer) {
 			case 4: //months
 				if (min == 255) { min = 1; max = 12; }
 				min--; max--;
-				if (min >= 12 || max >= 12) return 7;
+				if (min >= 12 || max >= 12) {
+					ESP_LOGE(TAG, "cron_parser: months are from 1 to 12, read %u, %u", min + 1, max + 1);
+					return 7;
+				}
 				//if (onTimer) printf("cron_parser: monthsOn ");
 				//else printf("cron_parser: monthsOff ");
 				for (k = min; k <= max; k++) {
@@ -377,7 +398,10 @@ static int cron_parser(char * cronline, bool onTimer) {
 				break;
 			case 5: //day-of-week
 				if (min == 255) { min = 0; max = 6; }
-				if (min >= 7 || max >= 7) return 8;
+				if (min >= 7 || max >= 7) {
+					ESP_LOGE(TAG, "cron_parser: day-of-weeks are from 0 to 6, read %u, %u", min, max);
+					return 8;
+				}
 				//if (onTimer) printf("cron_parser: dweekOn ");
 				//else printf("cron_parser: dweekOff ");
 				for (k = min; k <= max; k++) {
@@ -412,25 +436,40 @@ static int parse_body(char * body) {
 	//	ESP_LOGI(TAG,"body:\n%s", body);
 
 	cronlineOn = strtok(body, "\r\n");
-	if (!cronlineOn) return 1;
-	ESP_LOGI(TAG,"parse_body: cronlineOn %s", cronlineOn);
+	if (!cronlineOn) {
+		ESP_LOGE(TAG, "parse_body: unable to get cronlineOn line");
+		return 1;
+	}
+	//ESP_LOGI(TAG,"parse_body: cronlineOn %s", cronlineOn);
 	cronlineOff = strtok(NULL, "\r\n");
-	if (!cronlineOff) return 2;
-	ESP_LOGI(TAG,"parse_body: cronlineOff %s", cronlineOff);
+	if (!cronlineOff) {
+		ESP_LOGE(TAG, "parse_body: unable to get cronlineOff line");
+		return 2;
+	}
+	//ESP_LOGI(TAG,"parse_body: cronlineOff %s", cronlineOff);
 	relay_task_interval_char = strtok(NULL, "\r\n");
-	if (!relay_task_interval_char) return 3;
-	// ESP_LOGI(TAG,"relay_task_interval_char %s", relay_task_interval_char);
+	if (!relay_task_interval_char) {
+		ESP_LOGE(TAG, "parse_body: unable to get relay_task_interval");
+		return 3;
+	}
+	//ESP_LOGI(TAG,"parse_body: relay_task_interval_char %s", relay_task_interval_char);
 	if (isdigit((unsigned char)relay_task_interval_char[0])) {
 		relay_task_interval = atoi(relay_task_interval_char);
-		ESP_LOGI(TAG, "parse_body: relay_task_interval %u", relay_task_interval);
+		//ESP_LOGI(TAG, "parse_body: relay_task_interval %u", relay_task_interval);
 	}
-	else return 4;
+	else {
+		ESP_LOGE(TAG, "parse_body: relay_task_interval is not a number");
+		return 4;
+	}
 	timezone = strtok(NULL, "\r\n");
-	if (!timezone) return 5;
-	ESP_LOGI(TAG, "parse_body: timezone %s", timezone);
+	if (!timezone) {
+		ESP_LOGE(TAG, "parse_body: unable to get timezone");
+		return 5;
+	}
+	//ESP_LOGI(TAG, "parse_body: timezone %s", timezone);
 	tz = timezone;
 	if (strncmp(tz, TIMEZONE, sizeof(TIMEZONE)) != 0) {
-		ESP_LOGI(TAG, "parse_body: setting timezone %s...", tz);
+		ESP_LOGI(TAG, "parse_body: setting new timezone %s...", tz);
 		setenv("TZ", tz, 1);
 		tzset();
 	}
@@ -468,8 +507,8 @@ static void http_update_task(void *arg)
 
 		int err = getaddrinfo(WEB_SERVER, WEB_SERVER_PORT, &hints, &res);
 		if (err != 0) {
-			ESP_LOGE(TAG, "nslookup_task: DNS lookup failed - %d", err);
-			ESP_LOGW(TAG, "nslookup_task: out of precausion turning relay off...");
+			ESP_LOGE(TAG, "http_update_task: DNS lookup failed - %d", err);
+			ESP_LOGW(TAG, "http_update_task: out of precausion turning relay off...");
 			gpio_set_level(GPIO_NUM_0, 1); //Set GPIO0 as high - level output.
 			vTaskDelay(pdMS_TO_TICKS(rand));
 			continue;
@@ -573,9 +612,9 @@ static void http_update_task(void *arg)
 		}
 		UBaseType_t hwm = uxTaskGetStackHighWaterMark(NULL);
 		if (hwm <= HIGH_WATER_MARK_CRITICAL)
-			ESP_LOGE(TAG, "remote_logging_task: uxTaskGetStackHighWaterMark %lu", hwm);
+			ESP_LOGE(TAG, "http_update_task: uxTaskGetStackHighWaterMark %lu", hwm);
 		else if (hwm <= HIGH_WATER_MARK_WARNING)
-			ESP_LOGW(TAG, "remote_logging_task: uxTaskGetStackHighWaterMark %lu", hwm);
+			ESP_LOGW(TAG, "http_update_task: uxTaskGetStackHighWaterMark %lu", hwm);
 
 		vTaskDelay(pdMS_TO_TICKS(HTTP_UPDATE_INTERVAL));
 	}
@@ -601,7 +640,7 @@ static void relay_task(void *arg) {
 		if (timeinfo.tm_year >= 120) { //we got the time
 			//datetime Sat May 16 05:17:04 2020
 			strftime(datetime, sizeof(datetime), "%a %b %d %H:%M:%S %Y", &timeinfo);
-			ESP_LOGI(TAG, "datetime %s", datetime);
+			ESP_LOGI(TAG, "relay_task: datetime %s", datetime);
 
 			i = 0;
 			datetime_field[i] = strtok(datetime, " ");
@@ -807,9 +846,9 @@ static void relay_task(void *arg) {
 		}
 		UBaseType_t hwm = uxTaskGetStackHighWaterMark(NULL);
 		if (hwm <= HIGH_WATER_MARK_CRITICAL)
-			ESP_LOGE(TAG, "remote_logging_task: uxTaskGetStackHighWaterMark %lu", hwm);
+			ESP_LOGE(TAG, "relay_task: uxTaskGetStackHighWaterMark %lu", hwm);
 		else if (hwm <= HIGH_WATER_MARK_WARNING)
-			ESP_LOGW(TAG, "remote_logging_task: uxTaskGetStackHighWaterMark %lu", hwm);
+			ESP_LOGW(TAG, "relay_task: uxTaskGetStackHighWaterMark %lu", hwm);
 
 	sleep:
 		xLastWakeTime = xTaskGetTickCount();
@@ -843,8 +882,8 @@ static void fw_update_task(void *arg) {
 
 		int err = getaddrinfo(WEB_SERVER, WEB_SERVER_PORT, &hints, &res);
 		if (err != 0) {
-			ESP_LOGE(TAG, "nslookup_task: DNS lookup failed - %d", err);
-			ESP_LOGW(TAG, "nslookup_task: out of precausion turning relay off...");
+			ESP_LOGE(TAG, "fw_update_task: DNS lookup failed - %d", err);
+			ESP_LOGW(TAG, "fw_update_task: out of precausion turning relay off...");
 			gpio_set_level(GPIO_NUM_0, 1); //Set GPIO0 as high - level output.
 			vTaskDelay(pdMS_TO_TICKS(rand));
 			continue;
@@ -958,9 +997,9 @@ static void fw_update_task(void *arg) {
 		}
 		UBaseType_t hwm = uxTaskGetStackHighWaterMark(NULL);
 		if (hwm <= HIGH_WATER_MARK_CRITICAL)
-			ESP_LOGE(TAG, "remote_logging_task: uxTaskGetStackHighWaterMark %lu", hwm);
+			ESP_LOGE(TAG, "fw_update_task: uxTaskGetStackHighWaterMark %lu", hwm);
 		else if (hwm <= HIGH_WATER_MARK_WARNING)
-			ESP_LOGW(TAG, "remote_logging_task: uxTaskGetStackHighWaterMark %lu", hwm);
+			ESP_LOGW(TAG, "fw_update_task: uxTaskGetStackHighWaterMark %lu", hwm);
 
 		vTaskDelay(pdMS_TO_TICKS(FW_CHECK_INTERVAL));
 	}
@@ -1020,8 +1059,8 @@ static void esp_config_task(void *arg)
 			err = tcpip_adapter_get_dns_info(WIFI_IF_STA, TCPIP_ADAPTER_DNS_BACKUP, &sec_dns_ip);
 			if (err != ESP_OK)
 				ESP_LOGE(TAG, "esp_config_task: tcpip_adapter_get_dns_info failed - %s", esp_err_to_name(err));
-			ESP_LOGI(TAG, "dns 1: %s", ipaddr_ntoa(&prim_dns_ip.ip));
-			ESP_LOGI(TAG, "dns 2: %s", ipaddr_ntoa(&sec_dns_ip.ip));
+			//ESP_LOGI(TAG, "dns 1: %s", ipaddr_ntoa(&prim_dns_ip.ip));
+			//ESP_LOGI(TAG, "dns 2: %s", ipaddr_ntoa(&sec_dns_ip.ip));
 
 			ESP_LOGI(TAG, "esp_config_task: initializing SNTP...");
 			sntp_setoperatingmode(SNTP_OPMODE_POLL);
@@ -1030,13 +1069,13 @@ static void esp_config_task(void *arg)
 			sntp_setservername(2, NTP2);
 			sntp_init();
 
-			ESP_LOGI(TAG, "esp_config_task: setting timezone %s...", tz);
-			setenv("TZ", tz, 1);
-			tzset();
-
 			ESP_LOGI(TAG, "sntp 0: %s", sntp_getservername(0));
 			ESP_LOGI(TAG, "sntp 1: %s", sntp_getservername(1));
 			ESP_LOGI(TAG, "sntp 2: %s", sntp_getservername(2));
+
+			ESP_LOGI(TAG, "esp_config_task: setting timezone %s...", tz);
+			setenv("TZ", tz, 1);
+			tzset();
 
 			char par[strlen(TIMER_ON_CRONLINE) + strlen(TIMER_OFF_CRONLINE) + 15];
 			sprintf(par, "%s\n%s\n%u\n%s", TIMER_ON_CRONLINE, TIMER_OFF_CRONLINE, RELAY_TASK_INTERVAL, TIMEZONE);
@@ -1044,20 +1083,20 @@ static void esp_config_task(void *arg)
 
 			if (HTTP_UPDATE)
 				if (pdPASS != xTaskCreate(&http_update_task, "http_update_task", HTTP_UPDATE_TASK_SS, NULL, HTTP_UPDATE_TASK_PRIORITY, NULL))
-					ESP_LOGE(TAG, "failed to create http update task");
+					ESP_LOGE(TAG, "esp_config_task: failed to create http update task");
 			if (pdPASS != xTaskCreate(&relay_task, "relay_task", RELAY_TASK_SS, NULL, RELAY_TASK_PRIORITY, NULL))
-				ESP_LOGE(TAG, "failed to create relay task");
+				ESP_LOGE(TAG, "esp_config_task: failed to create relay task");
 			if (HTTP_FW_UPDATE)
 				if (pdPASS != xTaskCreate(&fw_update_task, "fw_update_task", FW_UPDATE_TASK_SS, NULL, FW_UPDATE_TASK_PRIORITY, NULL))
-					ESP_LOGE(TAG, "failed to create fw update task");
+					ESP_LOGE(TAG, "esp_config_task: failed to create fw update task");
 
 			ESP_ERROR_CHECK(gpio_set_direction(GPIO_NUM_0, GPIO_MODE_OUTPUT));
 		}
 		UBaseType_t hwm = uxTaskGetStackHighWaterMark(NULL);
 		if (hwm <= HIGH_WATER_MARK_CRITICAL)
-			ESP_LOGE(TAG, "remote_logging_task: uxTaskGetStackHighWaterMark %lu", hwm);
+			ESP_LOGE(TAG, "esp_config_task: uxTaskGetStackHighWaterMark %lu", hwm);
 		else if (hwm <= HIGH_WATER_MARK_WARNING)
-			ESP_LOGW(TAG, "remote_logging_task: uxTaskGetStackHighWaterMark %lu", hwm);
+			ESP_LOGW(TAG, "esp_config_task: uxTaskGetStackHighWaterMark %lu", hwm);
 	}
 }
 
@@ -1196,7 +1235,7 @@ static esp_err_t event_handler(void *ctx, system_event_t *evt)
 		case WIFI_REASON_ASSOC_FAIL: reason = "association failed"; break;
 		case WIFI_REASON_HANDSHAKE_TIMEOUT: reason = "handshake timeout"; break;
 		}
-		ESP_LOGW(TAG, "event_handler: disconnected from ssid %s, reason %s, re-scanning...",
+		ESP_LOGW(TAG, "event_handler: disconnected from ssid %s, reason %s, re-connecting...",
 			evt->event_info.disconnected.ssid, reason);
 		ESP_LOGW(TAG, "event_handler: out of precausion turning relay off...");
 		gpio_set_level(GPIO_NUM_0, 1); //Set GPIO0 as high - level output.
@@ -1212,11 +1251,11 @@ static esp_err_t event_handler(void *ctx, system_event_t *evt)
 		esp_restart();
 		break;
 	case SYSTEM_EVENT_STA_GOT_IP:
-		ESP_LOGI(TAG, "event_handler: station got ip:" IPSTR ", mask:" IPSTR ", gw:" IPSTR,
-			IP2STR(&evt->event_info.got_ip.ip_info.ip),
-			IP2STR(&evt->event_info.got_ip.ip_info.netmask),
-			IP2STR(&evt->event_info.got_ip.ip_info.gw));
 		if (!USE_STATIC_IP) {
+			ESP_LOGI(TAG, "event_handler: station got ip:" IPSTR ", mask:" IPSTR ", gw:" IPSTR,
+				IP2STR(&evt->event_info.got_ip.ip_info.ip),
+				IP2STR(&evt->event_info.got_ip.ip_info.netmask),
+				IP2STR(&evt->event_info.got_ip.ip_info.gw));
 			if (esp_config_task_handle) {
 				//ESP_LOGI(TAG, "event_handler: notifying esp_config_task...");
 				xTaskNotifyGive(esp_config_task_handle);
