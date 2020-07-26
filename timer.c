@@ -131,7 +131,7 @@ I (27930) reset_reason: RTC reset 2 wakeup 0 store 3, reason is 2
 #define SSID_CHANNEL 5 //optional channel for AP scan
 #define MIN_SCANTIME 1000 //wifi min active scan time in ms
 #define MAX_SCANTIME 5000 //wifi max active scan time in ms, passive scan should be less than 1500ms to avoid disconnecting from the AP
-#define HOSTNAME "cabin-fan"
+#define HOSTNAME "timer"
 #define NTP0 "0.pool.ntp.org"
 #define NTP1 "1.pool.ntp.org"
 #define NTP2 "2.pool.ntp.org"
@@ -147,8 +147,8 @@ I (27930) reset_reason: RTC reset 2 wakeup 0 store 3, reason is 2
 #define WEB_SERVER "example.com"
 #define WEB_SERVER_PORT "80"
 
-#define TIMER_ON_CRONLINE "* 0 9,11,13,15,17 * * *" //sec min hour day month day-of-week
-#define TIMER_OFF_CRONLINE "* 0 10,12,14,16,18 * * *" //sec min hour day month day-of-week
+#define TIMER_ON_CRONLINE "* 55 9-16  * * *" //sec min hour day month day-of-week
+#define TIMER_OFF_CRONLINE "* 0 10-17 * * *" //sec min hour day month day-of-week
 //timezone from -11 to 13
 #define RELAY_TASK_INTERVAL 55000 //period in ms to check if relay should be on or off
 								//set it based on relay schedule
@@ -191,6 +191,9 @@ TIMEZONE
 #define LOGGING_TASK_PRIORITY 3
 
 #define ESP_CONFIG_TASK_WAIT_NOTIFY_MS 1000
+#define ESP_CONFIG_TASK_PRIORITY 5
+#define AP_CHECK_TASK_PRIORITY 3
+#define AP_CHECK_TASK_DELAY_MS 60000
 
 //task stack sizes - adjust if you see warnings or errors in the log
 #define REMOTE_LOGGING_TASK_SS 1000
@@ -198,6 +201,7 @@ TIMEZONE
 #define HTTP_UPDATE_TASK_SS 4000
 #define FW_UPDATE_TASK_SS 4000
 #define RELAY_TASK_SS 1200
+#define AP_CHECK_TASK_SS 1000
 #define HIGH_WATER_MARK_WARNING 50
 #define HIGH_WATER_MARK_CRITICAL 10
 
@@ -1287,6 +1291,29 @@ static int remote_logging(int ch) {
 	return ch;
 }
 
+static void ap_check_task(void *arg) {
+	wifi_ap_record_t ap_record;
+	esp_err_t err;
+	UBaseType_t hwm;
+	while (1) {
+		vTaskDelay(pdMS_TO_TICKS(AP_CHECK_TASK_DELAY_MS));
+
+		err = esp_wifi_sta_get_ap_info(&ap_record);
+		if (err != ESP_OK) {
+			ESP_LOGE(TAG, "ap_check_task: esp_wifi_sta_get_ap_info failed - %s, restarting...", esp_err_to_name(err));
+			esp_restart();
+		}
+		/*else
+			ESP_LOGI(TAG, "%s (%x:%x:%x:%x:%x:%x) %udBm?, %s, 11b: %u, 11g: %u, 11n: %u, low_rate: %u", ap_record.ssid, ap_record.bssid[0], ap_record.bssid[1], ap_record.bssid[2], ap_record.bssid[3], ap_record.bssid[4], ap_record.bssid[5],
+				ap_record.rssi, authmode(ap_record.authmode), ap_record.phy_11b, ap_record.phy_11g, ap_record.phy_11n, ap_record.phy_lr);*/
+		hwm = uxTaskGetStackHighWaterMark(NULL);
+		if (hwm <= HIGH_WATER_MARK_CRITICAL)
+			ESP_LOGE(TAG, "ap_check_task: uxTaskGetStackHighWaterMark %lu", hwm);
+		else if (hwm <= HIGH_WATER_MARK_WARNING)
+			ESP_LOGW(TAG, "ap_check_task: uxTaskGetStackHighWaterMark %lu", hwm);
+	}
+}
+
 void app_main(void) {
 	esp_err_t err;
 	if (REMOTE_LOGGING) {
@@ -1337,23 +1364,13 @@ void app_main(void) {
 	//err = esp_wifi_set_bandwidth(ESP_IF_WIFI_STA, WIFI_BW_HT20); //WIFI_BW_HT40 for 802.11n
 	//err = esp_wifi_set_auto_connect(false); // default is true - deprecated!
 
-	if (pdPASS != xTaskCreate(&esp_config_task, "esp_config_task", ESP_CONFIG_TASK_SS, NULL, 5, &esp_config_task_handle))
+	if (pdPASS != xTaskCreate(&esp_config_task, "esp_config_task", ESP_CONFIG_TASK_SS, NULL, ESP_CONFIG_TASK_PRIORITY, &esp_config_task_handle))
 		ESP_LOGE(TAG, "app_main: failed to create esp config task");
+
+	if (pdPASS != xTaskCreate(&ap_check_task, "ap_check_task", AP_CHECK_TASK_SS, NULL, AP_CHECK_TASK_PRIORITY, NULL))
+		ESP_LOGE(TAG, "app_main: failed to create AP check task");
 
 	err = esp_wifi_start();
 	if (err != ESP_OK)
 		ESP_LOGE(TAG, "app_main: esp_wifi_start failed - %s", esp_err_to_name(err));
-
-	/* TO DO - create a task to monitor wifi state
-	wifi_state_t state = esp_wifi_get_state();
-	switch (state) {
-	case WIFI_STATE_DEINIT:
-		break;
-	case WIFI_STATE_INIT:
-		break;
-	case WIFI_STATE_START:
-		break;
-	default:
-	}
-	*/
 }
