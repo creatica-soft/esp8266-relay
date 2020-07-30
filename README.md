@@ -1,5 +1,19 @@
 esp8266-timer-relay is based on $2USD ESP-01s chip with relay from Aliexpress - https://www.aliexpress.com/item/32843645421.html
 
+There are two SDKs available for programming esp8266 chips: traditioinal Non-OS callback-oriented SDK and modern RTOS task-driven one based on freertos.
+
+There are also two approaches to programming the chip: push and pull. 
+
+With the push approach, the switch logic runs somewhere else, externally; for example, on a raspberry pi benefitting from a faster CPU, more RAM and readily available numerous tools, languages and scripts. The esp chip only connects to an access point (or runs its own) and listens for 0 or 1 on a certain network port. 0 will turn the relay off, 1 - on. Simple. 
+
+See simple-switch.c for the details. It has three tasks: one to configure the station once it connects to an AP, another monitors the WiFi status and restarts the station if something goes wrong and the relay_task that listens for 0 or 1 on a UDP port 7777.
+
+Sligly more advance example is remote-switch.c, which adds two more tasks: firmware update over the air (OTA) and remote logging.
+
+The pull approach incorporates the switch logic into the chip. It creates more network traffic and is limited to memory and cpu resources of the chip as well as the available programming tools. In short, it is more challenging but perhaps, more fun.
+
+Two examples below use the second approach but different SDKs.
+
 ## simple sntp time-based relay with OTA firmware update and remote logging for RTOS flavor
 
 user_main.c is an example of programming esp8266 wifi chip using ESP8266 Non-OS SDK.
