@@ -14,7 +14,7 @@ echo -n 0|nc -un -w 1 192.168.1.100 7777
 
 Slightly more advance example is remote-switch.c, which adds two more tasks: firmware update over the air (OTA) and remote logging.
 
-The pull approach incorporates the switch logic into the chip. It creates more network traffic and is limited to memory and cpu resources of the chip as well as the available programming tools. In short, it is more challenging but perhaps, more fun.
+The pull approach incorporates the switch logic into the chip. It creates more network traffic and is limited by memory and cpu resources of the chip as well as the available programming tools. In short, it is more challenging but perhaps, more fun.
 
 Two examples below use the second approach but different SDKs.
 
