@@ -1,9 +1,9 @@
 
 ## Multiple examples of using Espressif Non-OS SDK and RTOS SDK for programming ESP8266 WiFi chip
 
-esp8266-timer-relay is based on $2USD ESP-01s chip with relay from Aliexpress - https://www.aliexpress.com/item/32843645421.html
+esp8266 relay is based on $2USD ESP-01s chip with a relay from Aliexpress - https://www.aliexpress.com/item/32843645421.html
 
-There are two SDKs available for programming esp8266 chips: traditioinal Non-OS callback-oriented SDK and modern RTOS task-driven one based on freertos.
+There are two SDKs available for programming esp8266 chips: traditional Non-OS callback-oriented SDK and modern RTOS task-driven one based on freertos.
 
 There are also two approaches to programming the chip: push and pull. 
 
