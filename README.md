@@ -16,7 +16,9 @@ Slightly more advance example is remote-switch.c, which adds two more tasks: fir
 
 The pull approach incorporates the switch logic into the chip. It creates more network traffic and is limited by memory and cpu resources of the chip as well as the available programming tools. In short, it is more challenging but perhaps, more fun.
 
-Two examples below use the second approach but different SDKs.
+Three examples below use the second approach but different SDKs: user_main.c uses Non-OS SDK, timer.c and relay.c use RTOS SDK. 
+
+relay.c is the most advance version, which attempts to combine time and data into the switch logic. If data is outside of specified thresholds and time is within the working hours, then relay is to switched on or off. Still for even more complex scenarios, when multiple data thresholds exist during different time periods, it's better to use push approach (simple-switch.c or remote-switch.c) with the switch logic running somewhere else.
 
 ## simple sntp time-based relay with OTA firmware update and remote logging for RTOS flavor
 
