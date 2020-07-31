@@ -29,7 +29,7 @@ Three examples below use the second approach but different SDKs: user_main.c use
 
 * timer.c is an example of programming esp8266 wifi chip using ESP8266 RTOS SDK.
 
-* relay.c is the most advance version, which attempts to combine time and data into the switch logic. If data is outside of specified thresholds and time is within the working hours, then relay is to switched on or off. Still for even more complex scenarios, when multiple data thresholds exist during different time periods, it's better to use push approach (simple-switch.c or remote-switch.c) with the switch logic running somewhere else.
+* relay.c is the most advance version, which attempts to combine time and data into the switch logic. If data is outside of specified thresholds and time is within the working hours, then relay is to switch on or off. Still for even more complex scenarios, when multiple data thresholds exist during different time periods, it's better to use push approach (simple-switch.c or remote-switch.c) with the switch logic running somewhere else.
 
 The module is configured to connect to a WiFi access point using dynamic or defined static IP, configure DNS and SNTP time servers
 and get time from one of SNTP servers.
