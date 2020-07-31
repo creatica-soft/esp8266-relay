@@ -7,15 +7,19 @@ There are two SDKs available for programming esp8266 chips: traditional Non-OS c
 
 There are also two approaches to programming the chip: push and pull. 
 
+### Push approach (listen for 0 or 1 - external switch logic)
+
 With the push approach, the switch logic runs somewhere else, externally; for example, on a raspberry pi benefitting from a faster CPU, more RAM and readily available numerous tools, languages and scripts. The esp chip only connects to an access point (or runs its own) and listens for 0 or 1 on a certain network port. 0 will turn the relay off, 1 - on. Simple. 
 
-See simple-switch.c for the details. It has three tasks: one to configure the station once it connects to an AP, another monitors the WiFi status and restarts the station if something goes wrong and the relay_task that listens for 0 or 1 on a UDP port 7777, which can easilly be done using netcat:
+See simple-switch.c for the details. It has three tasks: one to configure the station once it connects to an AP, another monitors the WiFi status and restarts the station if something goes wrong and the relay_task that listens for 0 or 1 on a UDP port 7777. Transmitting a single digit over a wifi network can easilly be done with netcat; for example,
 
 ```
 echo -n 0|nc -un -w 1 192.168.1.100 7777
 ```
 
-Slightly more advance example is remote-switch.c, which adds two more tasks: firmware update over the air (OTA) and remote logging.
+Slightly more advance app is remote-switch.c, which adds two more tasks: firmware update over the air (OTA) and remote logging.
+
+### Pull approach (check time and/or data proactively and make a decision - internal switch logic)
 
 The pull approach incorporates the switch logic into the chip. It creates more network traffic and is limited by memory and cpu resources of the chip as well as the available programming tools. In short, it is more challenging but perhaps, more fun.
 
