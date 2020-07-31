@@ -1,3 +1,6 @@
+
+## Multiple examples of using Espressif Non-OS SDK and RTOS SDK for programming ESP8266 WiFi chip
+
 esp8266-timer-relay is based on $2USD ESP-01s chip with relay from Aliexpress - https://www.aliexpress.com/item/32843645421.html
 
 There are two SDKs available for programming esp8266 chips: traditioinal Non-OS callback-oriented SDK and modern RTOS task-driven one based on freertos.
@@ -18,13 +21,11 @@ The pull approach incorporates the switch logic into the chip. It creates more n
 
 Three examples below use the second approach but different SDKs: user_main.c uses Non-OS SDK, timer.c and relay.c use RTOS SDK. 
 
-relay.c is the most advance version, which attempts to combine time and data into the switch logic. If data is outside of specified thresholds and time is within the working hours, then relay is to switched on or off. Still for even more complex scenarios, when multiple data thresholds exist during different time periods, it's better to use push approach (simple-switch.c or remote-switch.c) with the switch logic running somewhere else.
+* user_main.c is an example of programming esp8266 wifi chip using ESP8266 Non-OS SDK.
 
-## simple sntp time-based relay with OTA firmware update and remote logging for RTOS flavor
+* timer.c is an example of programming esp8266 wifi chip using ESP8266 RTOS SDK.
 
-user_main.c is an example of programming esp8266 wifi chip using ESP8266 Non-OS SDK.
-
-timer.c is an example of programming esp8266 wifi chip using ESP8266 RTOS SDK.
+* relay.c is the most advance version, which attempts to combine time and data into the switch logic. If data is outside of specified thresholds and time is within the working hours, then relay is to switched on or off. Still for even more complex scenarios, when multiple data thresholds exist during different time periods, it's better to use push approach (simple-switch.c or remote-switch.c) with the switch logic running somewhere else.
 
 The module is configured to connect to a WiFi access point using dynamic or defined static IP, configure DNS and SNTP time servers
 and get time from one of SNTP servers.
