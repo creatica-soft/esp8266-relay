@@ -17,7 +17,7 @@ See simple-switch.c for the details. It has three tasks: one to configure the st
 echo -n 0|nc -un -w 1 192.168.1.100 7777
 ```
 
-Slightly more advance app is remote-switch.c, which adds two more tasks: firmware update over the air (OTA) and remote logging.
+Slightly more advance app is remote-switch.c, which adds three more tasks: firmware update over the air (OTA), remote logging and a safety task, which will turn relay off in case a UDP packet is missed somehow after the predetermined max on interval SAFETY_TASK_MAX_ON_MS.
 
 ### Pull approach (check time and/or data proactively and make a decision - internal switch logic)
 
