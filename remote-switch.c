@@ -145,9 +145,9 @@ I (27930) reset_reason: RTC reset 2 wakeup 0 store 3, reason is 2
 
 //OTA update of esp8266 flash with the new image
 #define FW_HTTP_UPDATE true
-#define FW_CHECK_INTERVAL 900000
+#define FW_UPDATE_TASK_DELAY_MS 900000
 #define FW_UPDATE_TASK_PRIORITY 4
-
+#define FW_UPDATE_TASK_SS 4000
 #define WEB_SERVER "example.com"
 #define WEB_SERVER_PORT "80"
 #define HTTP_METHOD "GET"
@@ -158,34 +158,38 @@ I (27930) reset_reason: RTC reset 2 wakeup 0 store 3, reason is 2
 //for example, make it /timer-2.bin but upload the binary to the web server with the previously flashed version, i.e. /timer-1.bin
 #define FW_PATH "/remote-switch-1.bin"
 
-#define RELAY_TASK_INTERVAL 1000 //ms
+#define RELAY_TASK_DELAY_MS 1000 //ms
 #define RELAY_TASK_PRIORITY 5
+#define RELAY_TASK_SS 1200
 
 #define REMOTE_LOGGING true
 #define REMOTE_LOGGING_IP "192.168.1.1"
 #define REMOTE_LOGGING_UDP_PORT 6666
-#define CHAR_TIMEOUT 1000 //ms, waiting for new log char
 #define MAX_LOG_BUFFER_SIZE 1460 //network packet max payload size
 #define LOGGING_TASK_PRIORITY 3
-
-#define ESP_CONFIG_TASK_DELAY_MS 1000
+#define LOGGING_TASK_DELAY_MS 1000 //ms, waiting for new log char
+#define REMOTE_LOGGING_TASK_SS 1000
 #define ESP_CONFIG_TASK_PRIORITY 5
+#define ESP_CONFIG_TASK_DELAY_MS 1000
+#define ESP_CONFIG_TASK_SS 2000
+#define AP_CHECK true 
 #define AP_CHECK_TASK_PRIORITY 3
 #define AP_CHECK_TASK_DELAY_MS 60000
-
-//task stack sizes - adjust if you see high water mark warnings or errors in the log
-#define REMOTE_LOGGING_TASK_SS 1000
-#define ESP_CONFIG_TASK_SS 2000
-#define FW_UPDATE_TASK_SS 4000
-#define RELAY_TASK_SS 1200
 #define AP_CHECK_TASK_SS 1000
+#define SAFETY_CHECK true
+#define SAFETY_TASK_PRIORITY 3
+#define SAFETY_TASK_DELAY_MS 55000 
+#define SAFETY_TASK_MAX_ON_MS 360000 //turn the relay off in case UDP packet with 0 is lost somehow
+#define SAFETY_TASK_SS 1000
+
+//log high water mark warnings or errors - watch them and adjust task's stack size if needed
 #define HIGH_WATER_MARK_WARNING 50
 #define HIGH_WATER_MARK_CRITICAL 10
 
 static const char *TAG = HOSTNAME;
 static uint8_t log_buffer[MAX_LOG_BUFFER_SIZE];
 static uint16_t log_buffer_pointer;
-static TaskHandle_t esp_config_task_handle = NULL, logging_task_handle = NULL;
+static TaskHandle_t esp_config_task_handle = NULL, logging_task_handle = NULL, safety_task_handle = NULL;
 
 static char * authmode(wifi_auth_mode_t mode) {
 	switch (mode) {
@@ -260,6 +264,7 @@ static void relay_task(void *arg) {
 			if (isdigit((unsigned int)buffer[0])) {
 				if (atoi(buffer)) {
 					ESP_LOGI(TAG, "relay_task: turning relay on...");
+					xTaskNotifyGive(safety_task_handle);
 					gpio_set_level(GPIO_NUM_0, 0); //Set GPIO0 as low - level output.
 				}
 				else {
@@ -277,7 +282,25 @@ static void relay_task(void *arg) {
 		else if (hwm <= HIGH_WATER_MARK_WARNING)
 			ESP_LOGW(TAG, "relay_task: uxTaskGetStackHighWaterMark %lu", hwm);
 
-		vTaskDelay(pdMS_TO_TICKS(RELAY_TASK_INTERVAL));
+		vTaskDelay(pdMS_TO_TICKS(RELAY_TASK_DELAY_MS));
+	}
+}
+
+static void safety_task(void *arg) {
+	UBaseType_t hwm;
+	uint32_t notificationValue;
+	while (1) {
+		notificationValue = ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(SAFETY_TASK_DELAY_MS));
+		if (notificationValue) {
+			vTaskDelay(pdMS_TO_TICKS(SAFETY_TASK_MAX_ON_MS));
+			ESP_LOGI(TAG, "safety_task: SAFETY_TASK_MAX_ON_MS %u is over, turning relay off, just in case it's still on...", SAFETY_TASK_MAX_ON_MS);
+			gpio_set_level(GPIO_NUM_0, 1); //Set GPIO0 as high - level output.
+		}
+		hwm = uxTaskGetStackHighWaterMark(NULL);
+		if (hwm <= HIGH_WATER_MARK_CRITICAL)
+			ESP_LOGE(TAG, "safety_task: uxTaskGetStackHighWaterMark %lu", hwm);
+		else if (hwm <= HIGH_WATER_MARK_WARNING)
+			ESP_LOGW(TAG, "safety_task: uxTaskGetStackHighWaterMark %lu", hwm);
 	}
 }
 
@@ -377,7 +400,7 @@ static void fw_update_task(void *arg) {
 				}
 			}
 			else if (http_status == 404) {
-				ESP_LOGI(TAG, "fw_update_task: no new timer image available. Next check is in %u ms", FW_CHECK_INTERVAL);
+				ESP_LOGI(TAG, "fw_update_task: no new timer image available. Next check is in %u ms", FW_UPDATE_TASK_DELAY_MS);
 				goto sleep;
 			}
 			else {
@@ -426,7 +449,9 @@ static void fw_update_task(void *arg) {
 		else if (hwm <= HIGH_WATER_MARK_WARNING)
 			ESP_LOGW(TAG, "fw_update_task: uxTaskGetStackHighWaterMark %lu", hwm);
 
-		vTaskDelay(pdMS_TO_TICKS(FW_CHECK_INTERVAL));
+		//1 tick is 10ms as defined by CONFIG_FREERTOS_HZ=100
+		//so delaying for 1s translates to 100 ticks, for example
+		vTaskDelay(pdMS_TO_TICKS(FW_UPDATE_TASK_DELAY_MS)); 
 	}
 }
 
@@ -509,6 +534,9 @@ static void esp_config_task(void *arg)
 			if (FW_HTTP_UPDATE)
 				if (pdPASS != xTaskCreate(&fw_update_task, "fw_update_task", FW_UPDATE_TASK_SS, NULL, FW_UPDATE_TASK_PRIORITY, NULL))
 					ESP_LOGE(TAG, "esp_config_task: failed to create fw update task");
+			if (SAFETY_CHECK)
+				if (pdPASS != xTaskCreate(&safety_task, "safety_task", SAFETY_TASK_SS, NULL, SAFETY_TASK_PRIORITY, &safety_task_handle))
+					ESP_LOGE(TAG, "esp_config_task: failed to create safety task");
 		}
 		UBaseType_t hwm = uxTaskGetStackHighWaterMark(NULL);
 		if (hwm <= HIGH_WATER_MARK_CRITICAL)
@@ -523,8 +551,6 @@ static esp_err_t event_handler(void *ctx, system_event_t *evt)
 	//ESP_LOGI(TAG,"event %x", evt->event_id);
 	char * reason = "";
 	esp_err_t err;
-	//wifi_ap_record_t ap_records[MAX_AP_RECORDS];
-	//uint16_t ap_record_number = MAX_AP_RECORDS, ap_number, i;
 
 	switch (evt->event_id) {
 	case SYSTEM_EVENT_WIFI_READY: //should be triggered after esp-wifi_init() but it is not!
@@ -698,7 +724,7 @@ static void remote_logging_task(void *arg) {
 	uint32_t notificationValue;
 
 	while (1) {
-		notificationValue = ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(CHAR_TIMEOUT));
+		notificationValue = ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(LOGGING_TASK_DELAY_MS));
 		if (notificationValue)
 			sendlog();
 		else if (log_buffer_pointer > 0)
@@ -792,8 +818,9 @@ void app_main(void) {
 	if (pdPASS != xTaskCreate(&esp_config_task, "esp_config_task", ESP_CONFIG_TASK_SS, NULL, ESP_CONFIG_TASK_PRIORITY, &esp_config_task_handle))
 		ESP_LOGE(TAG, "app_main: failed to create esp config task");
 
-	if (pdPASS != xTaskCreate(&ap_check_task, "ap_check_task", AP_CHECK_TASK_SS, NULL, AP_CHECK_TASK_PRIORITY, NULL))
-		ESP_LOGE(TAG, "app_main: failed to create AP check task");
+	if (AP_CHECK)
+		if (pdPASS != xTaskCreate(&ap_check_task, "ap_check_task", AP_CHECK_TASK_SS, NULL, AP_CHECK_TASK_PRIORITY, NULL))
+			ESP_LOGE(TAG, "app_main: failed to create AP check task");
 
 	err = esp_wifi_start();
 	if (err != ESP_OK)
