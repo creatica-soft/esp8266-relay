@@ -172,6 +172,9 @@ I (27930) reset_reason: RTC reset 2 wakeup 0 store 3, reason is 2
 #define ESP_CONFIG_TASK_PRIORITY 5
 #define ESP_CONFIG_TASK_DELAY_MS 1000
 #define ESP_CONFIG_TASK_SS 2000
+//whether the relay is on (0 - GPIO_NUM_0 low level) or off (1 - GPIO_NUM_0 high level) by default
+#define RELAY_DEFAULT_STATE 1
+
 #define AP_CHECK true 
 #define AP_CHECK_TASK_PRIORITY 3
 #define AP_CHECK_TASK_DELAY_MS 60000
@@ -528,6 +531,8 @@ static void esp_config_task(void *arg)
 			tzset();
 
 			ESP_ERROR_CHECK(gpio_set_direction(GPIO_NUM_0, GPIO_MODE_OUTPUT));
+			ESP_LOGI(TAG, "esp_config_task: setting relay default state %u...", RELAY_DEFAULT_STATE);
+			gpio_set_level(GPIO_NUM_0, RELAY_DEFAULT_STATE);
 
 			if (pdPASS != xTaskCreate(&relay_task, "relay_task", RELAY_TASK_SS, NULL, RELAY_TASK_PRIORITY, NULL))
 				ESP_LOGE(TAG, "esp_config_task: failed to create relay task");
