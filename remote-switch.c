@@ -267,7 +267,7 @@ static void relay_task(void *arg) {
 			if (isdigit((unsigned int)buffer[0])) {
 				if (atoi(buffer)) {
 					ESP_LOGI(TAG, "relay_task: turning relay on...");
-					xTaskNotifyGive(safety_task_handle);
+					if (SAFETY_CHECK) xTaskNotifyGive(safety_task_handle);
 					gpio_set_level(GPIO_NUM_0, 0); //Set GPIO0 as low - level output.
 				}
 				else {
