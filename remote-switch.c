@@ -134,9 +134,11 @@ I (27930) reset_reason: RTC reset 2 wakeup 0 store 3, reason is 2
 #define STATIC_IP "192.168.1.100"
 #define NETMASK "255.255.255.0"
 #define GATEWAY_IP "192.168.1.1"
+# ensure CONFIG_LWIP_DHCP_MAX_NTP_SERVERS=3 in sdkconfig
 #define NTP0 "0.pool.ntp.org"
 #define NTP1 "1.pool.ntp.org"
 #define NTP2 "2.pool.ntp.org"
+# ensure CONFIG_DNS_MAX_SERVERS=2 in sdkconfig
 #define DNS1 "192.168.1.1"
 #define DNS2 "8.8.8.8"
 #define TIMEZONE "NZST-12NZDT-13,M10.1.0,M3.3.0" //for TZ format see man tzset()
